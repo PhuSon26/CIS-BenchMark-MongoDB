@@ -1,0 +1,100 @@
+- name: Install MongoDB
+  hosts: mongodb_nodes
+  become: true
+  tasks:
+    - name: Verify Ubuntu version
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_release == "noble"
+        fail_msg: "This playbook requires Ubuntu 24.04 LTS."
+
+    - name: Update package cache and upgrade system packages
+      ansible.builtin.apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Install MongoDB repository prerequisites
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+
+    - name: Create MongoDB keyring directory
+      ansible.builtin.file:
+        path: /usr/share/keyrings
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      
+    - name: Download MongoDB 8 signing key
+      ansible.builtin.get_url:
+        url: https://pgp.mongodb.com/server-8.0.asc
+        dest: /tmp/mongodb-server-8.0.asc
+
+    - name: Convert MongoDB signing key
+      ansible.builtin.command:
+        cmd: >-
+          gpg --dearmor --batch --yes
+          --output /usr/share/keyrings/mongodb-server-8.0.gpg
+          /tmp/mongodb-server-8.0.asc
+      args:
+        creates: /usr/share/keyrings/mongodb-server-8.0.gpg
+      
+    - name: Add MongoDB 8 apt repository
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [ arch=amd64,arm64
+          signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ]
+          https://repo.mongodb.org/apt/ubuntu
+          noble/mongodb-org/8.0 multiverse
+        filename: mongodb-org-8.0
+        state: present
+        update_cache: yes
+
+    - name: Install MongoDB packages
+      ansible.builtin.apt:
+        name: mongodb-org
+        state: present
+        update_cache: yes
+    
+    - name: Set secure permissions on mongod.conf
+      ansible.builtin.file:
+        path: /etc/mongod.conf
+        owner: root
+        group: root
+        mode: '0640'
+
+    - name: Enable and start MongoDB service
+      ansible.builtin.systemd:
+        name: mongod
+        enabled: yes
+        state: started
+
+    - name: Check MongoDB service status
+      ansible.builtin.command:
+        cmd: systemctl is-active mongod
+      register: mongodb_status
+      changed_when: false
+      failed_when: mongodb_status.stdout | trim != "active"
+
+    - name: Verify MongoDB database connection
+      ansible.builtin.command:
+        argv:
+            - mongosh
+            - --quiet
+            - --eval
+            - "db.adminCommand({ ping: 1 }).ok"
+      register: mongodb_connection
+      changed_when: false
+      failed_when: mongodb_connection.stdout | trim != "1"
+
+    - name: Display MongoDB status
+      ansible.builtin.debug:
+        msg: >-
+          MongoDB is running on {{ inventory_hostname }}.
+          Service status: {{ mongodb_status.stdout }}.
+          Database ping: {{ mongodb_connection.stdout | trim }}.
