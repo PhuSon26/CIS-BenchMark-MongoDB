@@ -1,4 +1,4 @@
-- name: Install MongoDB
+.03- name: Install MongoDB
   hosts: mongodb_nodes
   become: true
   tasks:

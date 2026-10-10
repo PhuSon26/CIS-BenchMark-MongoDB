@@ -1,0 +1,65 @@
+- name: Configure MongoDB Replica Set
+  hosts: mongodb_nodes
+  tasks:
+    - name: Install pymongo
+      ansible.builtin.apt:
+        name: python3-pymongo
+        state: present
+        update_cache: yes
+      when: inventory_hostname == groups['mongodb_nodes'][0]  
+
+    - name: Configure MongoDB Replica Set name
+      ansible.builtin.lineinfile:
+        path: /etc/mongod.conf
+        regexp: '^\s*replSetName:'
+        line: '  replSetName: rs0'
+        insertafter: '^replication:'
+      notify: Restart MongoDB
+
+    - name: Apply MongoDB configuration
+      ansible.builtin.meta: flush_handlers
+
+    - name: Wait for MongoDB port
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 27017
+        state: started
+        timeout: 30
+
+    - name: Initialize MongoDB Replica Set
+      community.mongodb.mongodb_replicaset:
+        login_host: 127.0.0.1
+        login_port: 27017
+        replica_set: rs0
+        members:
+          - host: "{{ hostvars[groups['mongodb_nodes'][0]].ansible_host }}:27017"
+            priority: 2
+          - host: "{{ hostvars[groups['mongodb_nodes'][1]].ansible_host }}:27017"
+            priority: 1
+          - host: "{{ hostvars[groups['mongodb_nodes'][2]].ansible_host }}:27017"
+            priority: 1
+        state: present
+      when: inventory_hostname == groups['mongodb_nodes'][0]
+
+    - name: Verify MongoDB Replica Set status
+      ansible.builtin.command:
+        argv:
+          - mongosh
+          - --quiet
+          - --host
+          - 127.0.0.1
+          - --eval
+          - 'JSON.stringify(rs.status().members.map(m => ({name: m.name, state: m.stateStr})))'
+      register: replica_status
+      changed_when: false
+      when: inventory_hostname == groups['mongodb_nodes'][0]
+
+    - name: Display MongoDB Replica Set status
+      ansible.builtin.debug:
+        var: replica_status.stdout
+      when: inventory_hostname == groups['mongodb_nodes'][0]
+  handlers:
+    - name: Restart MongoDB
+      ansible.builtin.service:
+        name: mongod
+        state: restarted
