@@ -1,23 +1,29 @@
+- name: Install Python
+  hosts: all
+  become: true
+  roles:
+    - python_install
+
 - name: Install MongoDB Server
   hosts: mongodb_nodes
   become: true
-  roles: 
-   - mongodb_install
-
-- name: Install Python
-  hosts: mongodb_nodes
-  become: true
-  roles: 
-   - python_install
+  roles:
+    - mongodb_install
 
 - name: Configure MongoDB Replica Set
   hosts: mongodb_nodes
   become: true
-  roles: 
-   - mongodb_replica_set
+  roles:
+    - mongodb_replica_set
+
+- name: Install Prometheus and Grafana on Controller Node
+  hosts: controller_node
+  become: true
+  roles:
+    - monitoring_install
 
 - name: Install MongoDB Exporter
   hosts: mongodb_nodes
   become: true
-  roles: 
-   - mongodb_exporter
+  roles:
+    - mongodb_exporter

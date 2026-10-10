@@ -1,0 +1,143 @@
+# Install Prometheus
+- name: Download Prometheus
+  ansible.builtin.get_url:
+    url: "https://github.com/prometheus/prometheus/releases/download/v3.1.0/prometheus-3.1.0.linux-amd64.tar.gz"
+    dest: "/tmp/prometheus-3.1.0.linux-amd64.tar.gz"
+
+- name: Extract Prometheus
+  ansible.builtin.unarchive:
+    src: "/tmp/prometheus-3.1.0.linux-amd64.tar.gz"
+    dest: "/usr/local/bin/"
+    remote_src: yes
+
+- name: Create Prometheus user
+  ansible.builtin.user:
+    name: prometheus
+    shell: /bin/false
+    state: present
+
+- name: Create Prometheus directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: prometheus
+    group: prometheus
+  with_items:
+    - /etc/prometheus
+    - /var/lib/prometheus
+
+- name: Move Prometheus binary
+  ansible.builtin.copy:
+    src: /usr/local/bin/prometheus-3.1.0.linux-amd64/prometheus
+    dest: /usr/local/bin/prometheus
+    remote_src: true
+
+- name: Move Promtool binary
+  ansible.builtin.copy:
+    src: /usr/local/bin/prometheus-3.1.0.linux-amd64/promtool
+    dest: /usr/local/bin/promtool
+    remote_src: true
+
+- name: Create Prometheus configuration file
+  ansible.builtin.copy:
+    dest: /etc/prometheus/prometheus.yml
+    content: |
+      global:
+        scrape_interval: 15s
+        evaluation_interval: 15s
+
+      scrape_configs:
+        - job_name: prometheus
+          static_configs:
+            - targets: ['localhost:9090']
+
+        - job_name: nodes
+          static_configs:
+            - targets:
+                - 'mongodb_ip_private1:9216'
+                - 'mongodb_ip_private2:9216'
+                - 'mongodb_ip_private3:9216'
+    notify: Restart Prometheus
+
+- name: Create Prometheus service file
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/prometheus.service
+    content: |
+      [Unit]
+      Description=Prometheus
+      Wants=network-online.target
+      After=network-online.target
+
+      [Service]
+      User=prometheus
+      Group=prometheus
+      Type=simple
+      ExecStart=/usr/local/bin/prometheus \
+        --config.file=/etc/prometheus/prometheus.yml \
+        --storage.tsdb.path=/var/lib/prometheus/ \
+        --web.listen-address=0.0.0.0:9090
+
+      [Install]
+      WantedBy=multi-user.target
+
+  register: prometheus_service_status
+  ignore_errors: true
+
+- name: Verify Prometheus status
+  ansible.builtin.command: 
+    cmd: systemctl is-active prometheus
+  register: prometheus_status
+  changed_when: false
+  failed_when: false
+
+- name: Start Prometheus service
+  ansible.builtin.systemd:
+    name: prometheus
+    state: started
+    enabled: yes
+    daemon_reload: true
+
+# Install Grafana
+- name: Install Grafana prerequisites
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - gnupg
+      - wget
+    state: present
+    update_cache: true
+
+- name: Create APT keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Download Grafana GPG key
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /tmp/grafana.gpg.key
+    mode: '0644'
+
+- name: Dearmor Grafana GPG key
+  ansible.builtin.command:
+    cmd: gpg --dearmor --yes -o /etc/apt/keyrings/grafana.gpg /tmp/grafana.gpg.key
+    creates: /etc/apt/keyrings/grafana.gpg
+
+- name: Add Grafana repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main"
+    filename: grafana
+    state: present
+    update_cache: true
+
+- name: Install Grafana
+  ansible.builtin.apt:
+    name: grafana
+    state: present
+
+- name: Start Grafana service
+  ansible.builtin.systemd:
+    name: grafana-server
+    state: started
+    enabled: true

@@ -1,13 +1,6 @@
-- name: Verify Ubuntu version
-  ansible.builtin.assert:
-    that:
-      - ansible_distribution == "Ubuntu"
-      - ansible_distribution_release == "noble"
-    fail_msg: "This playbook requires Ubuntu 24.04 LTS."
-
 - name: Update package cache and upgrade system packages
   ansible.builtin.apt:
-    update_cache: yes
+    update_cache: true
     upgrade: dist
 
 - name: Install MongoDB repository prerequisites
@@ -26,10 +19,11 @@
     group: root
     mode: "0755"
 
-- name: Download MongoDB 8 signing key
+- name: Download MongoDB signing key
   ansible.builtin.get_url:
     url: https://pgp.mongodb.com/server-8.0.asc
     dest: /tmp/mongodb-server-8.0.asc
+    mode: "0644"
 
 - name: Convert MongoDB signing key
   ansible.builtin.command:
@@ -37,37 +31,51 @@
       gpg --dearmor --batch --yes
       --output /usr/share/keyrings/mongodb-server-8.0.gpg
       /tmp/mongodb-server-8.0.asc
-  args:
     creates: /usr/share/keyrings/mongodb-server-8.0.gpg
 
-- name: Add MongoDB 8 apt repository
+- name: Add MongoDB repository
   ansible.builtin.apt_repository:
-    repo: >-
-      deb [ arch=amd64,arm64
-      signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ]
-      https://repo.mongodb.org/apt/ubuntu
-      noble/mongodb-org/8.0 multiverse
+    repo: "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse"
     filename: mongodb-org-8.0
     state: present
-    update_cache: yes
+    update_cache: true
 
 - name: Install MongoDB packages
   ansible.builtin.apt:
     name: mongodb-org
     state: present
-    update_cache: yes
+    update_cache: true
 
-- name: Set secure permissions on mongod.conf
+- name: Configure MongoDB network binding
+  ansible.builtin.lineinfile:
+    path: /etc/mongod.conf
+    regexp: '^\s*bindIp:'
+    line: "  bindIp: 127.0.0.1,{{ ansible_host }}"
+    insertafter: '^\s*port:'
+  notify: Restart MongoDB
+
+- name: Configure MongoDB Replica Set name
+  ansible.builtin.lineinfile:
+    path: /etc/mongod.conf
+    regexp: '^\s*replSetName:'
+    line: "  replSetName: rs0"
+    insertafter: '^replication:'
+  notify: Restart MongoDB
+
+- name: Set secure permissions on MongoDB configuration
   ansible.builtin.file:
     path: /etc/mongod.conf
     owner: root
     group: root
     mode: "0640"
 
+- name: Apply MongoDB configuration changes
+  ansible.builtin.meta: flush_handlers
+
 - name: Enable and start MongoDB service
   ansible.builtin.systemd:
     name: mongod
-    enabled: yes
+    enabled: true
     state: started
 
 - name: Check MongoDB service status
@@ -91,6 +99,6 @@
 - name: Display MongoDB status
   ansible.builtin.debug:
     msg: >-
-      MongoDB is running on {{ inventory_hostname }}.
-      Service status: {{ mongodb_status.stdout }}.
-      Database ping: {{ mongodb_connection.stdout | trim }}.
+      MongoDB is running on {{ inventory_hostname }}
+      Service status: {{ mongodb_status.stdout }}
+      Database ping: {{ mongodb_connection.stdout | trim }}
