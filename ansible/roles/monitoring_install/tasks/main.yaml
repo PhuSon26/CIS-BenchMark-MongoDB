@@ -31,16 +31,25 @@
     src: /usr/local/bin/prometheus-3.1.0.linux-amd64/prometheus
     dest: /usr/local/bin/prometheus
     remote_src: true
+    owner: root
+    group: root
+    mode: "0755"
 
 - name: Move Promtool binary
   ansible.builtin.copy:
     src: /usr/local/bin/prometheus-3.1.0.linux-amd64/promtool
     dest: /usr/local/bin/promtool
     remote_src: true
+    owner: root
+    group: root
+    mode: "0755"
 
 - name: Create Prometheus configuration file
   ansible.builtin.copy:
     dest: /etc/prometheus/prometheus.yml
+    owner: prometheus
+    group: prometheus
+    mode: "0644"
     content: |
       global:
         scrape_interval: 15s
@@ -51,13 +60,13 @@
           static_configs:
             - targets: ['localhost:9090']
 
-        - job_name: nodes
+        - job_name: mongodb_exporter
           static_configs:
             - targets:
-                - 'mongodb_ip_private1:9216'
-                - 'mongodb_ip_private2:9216'
-                - 'mongodb_ip_private3:9216'
-    notify: Restart Prometheus
+                - '{{ hostvars[groups['mongodb_nodes'][0]].ansible_host }}:9216'
+                - '{{ hostvars[groups['mongodb_nodes'][1]].ansible_host }}:9216'
+                - '{{ hostvars[groups['mongodb_nodes'][2]].ansible_host }}:9216'
+  notify: Restart Prometheus
 
 - name: Create Prometheus service file
   ansible.builtin.copy:
