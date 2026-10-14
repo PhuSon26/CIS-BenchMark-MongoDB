@@ -20,12 +20,17 @@
     dest: /tmp/mongodb_exporter.tar.gz
     mode: "0644"
 
+- name: Create MongoDB Exporter extraction directory
+  ansible.builtin.file:
+    path: /tmp/mongodb_exporter_extracted
+    state: directory
+    mode: "0755"
+
 - name: Extract MongoDB Exporter archive
   ansible.builtin.unarchive:
     src: /tmp/mongodb_exporter.tar.gz
     dest: /tmp/mongodb_exporter_extracted
     remote_src: true
-    creates: /tmp/mongodb_exporter_extracted
 
 - name: Find MongoDB Exporter executable
   ansible.builtin.find:

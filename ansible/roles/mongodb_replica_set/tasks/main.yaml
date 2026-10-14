@@ -4,14 +4,6 @@
     state: present
     update_cache: true
 
-- name: Configure MongoDB Replica Set name
-  ansible.builtin.lineinfile:
-    path: /etc/mongod.conf
-    regexp: '^\s*replSetName:'
-    line: "  replSetName: rs0"
-    insertafter: '^replication:'
-  notify: Restart MongoDB
-
 - name: Apply MongoDB configuration
   ansible.builtin.meta: flush_handlers
 
@@ -34,7 +26,6 @@
         priority: 1
       - host: "{{ hostvars[groups['mongodb_nodes'][2]].ansible_host }}:27017"
         priority: 1
-    state: present
   when: inventory_hostname == groups['mongodb_nodes'][0]
 
 - name: Verify MongoDB Replica Set status

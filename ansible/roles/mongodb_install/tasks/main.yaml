@@ -1,7 +1,7 @@
-- name: Update package cache and upgrade system packages
+- name: Update package cache
   ansible.builtin.apt:
     update_cache: true
-    upgrade: dist
+    cache_valid_time: 3600
 
 - name: Install MongoDB repository prerequisites
   ansible.builtin.apt:
@@ -54,19 +54,27 @@
     insertafter: '^\s*port:'
   notify: Restart MongoDB
 
-- name: Configure MongoDB Replica Set name
+- name: Remove misplaced Replica Set configuration
   ansible.builtin.lineinfile:
     path: /etc/mongod.conf
     regexp: '^\s*replSetName:'
-    line: "  replSetName: rs0"
-    insertafter: '^replication:'
+    state: absent
+  notify: Restart MongoDB
+
+- name: Configure MongoDB Replica Set
+  ansible.builtin.blockinfile:
+    path: /etc/mongod.conf
+    marker: "# {mark} ANSIBLE MANAGED REPLICA SET"
+    block: |
+      replication:
+        replSetName: rs0
   notify: Restart MongoDB
 
 - name: Set secure permissions on MongoDB configuration
   ansible.builtin.file:
     path: /etc/mongod.conf
     owner: root
-    group: root
+    group: mongodb
     mode: "0640"
 
 - name: Apply MongoDB configuration changes

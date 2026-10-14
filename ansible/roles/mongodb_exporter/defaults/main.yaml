@@ -1,0 +1,5 @@
+---
+mongodb_exporter_user: mongodb_exporter
+mongodb_exporter_version: "0.53.0"
+mongodb_exporter_uri: "mongodb://127.0.0.1:27017"
+mongodb_exporter_port: 9216
