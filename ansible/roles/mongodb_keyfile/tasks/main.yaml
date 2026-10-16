@@ -1,3 +1,4 @@
+---
 - name: Create MongoDB keyfile directory
   ansible.builtin.file:
     path: /etc/mongodb

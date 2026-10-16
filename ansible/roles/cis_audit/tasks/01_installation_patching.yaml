@@ -43,7 +43,7 @@
     cis_1_1_mongodb_updates: >-
       {{
         cis_1_1_upgradable_packages.stdout_lines 
-        | defaults([]) 
+        | default([]) 
         | select('search', '(?i)mongodb|mongosh|mongo') 
         | list
       }}
@@ -70,11 +70,11 @@
         Ensure the appropriate MongoDB software version/patches are installed
       node: "{{ inventory_hostname }}"
       server_version: >-
-        {{ cis_1_1_server_version.stdout | defaults('NOT_FOUND') }}
+        {{ cis_1_1_server_version.stdout | default('NOT_FOUND') }}
       installed_package_version: >-
-        {{ cis_1_1_installed_package.stdout | defaults('NOT_FOUND') }}
+        {{ cis_1_1_installed_package.stdout | default('NOT_FOUND') }}
       package_policy: >-
-        {{ cis_1_1_package_policy.stdout | defaults('') }}
+        {{ cis_1_1_package_policy.stdout | default('') }}
       mongodb_updates: "{{ cis_1_1_mongodb_updates }}"
       assessment: "{{ cis_1_1_collection_status }}"
       remediation_performed: false
