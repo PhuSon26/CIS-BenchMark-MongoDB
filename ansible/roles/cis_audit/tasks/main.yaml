@@ -1,2 +1,6 @@
+---
 - name: CIS 1.1 | Installation and Patching
   ansible.builtin.import_tasks: 01_installation_patching.yaml
+
+- name: CIS 2.1 | Authentication
+  ansible.builtin.import_tasks: 02_authentication.yaml

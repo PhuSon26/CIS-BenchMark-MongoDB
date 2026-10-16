@@ -1,0 +1,7 @@
+---
+- name: Prepare MongoDB replica set keyfile
+  hosts: mongodb_nodes
+  become: true
+  gather_facts: false
+  roles:
+    - mongodb_keyfile
