@@ -2,7 +2,5 @@
   hosts: mongdb_nodes
   become: true
   gather_facts: false
-  tasks:
-    name: Audit CIS 1.1
-    ansible.builtin.import_tasks:
-      file: roles/cis_audit/tasks/01_installation_patching.yaml
+  roles:
+    - cis_audit
