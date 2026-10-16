@@ -1,0 +1,15 @@
+- name: Create MongoDB keyfile directory
+  ansible.builtin.file:
+    path: /etc/mongodb
+    state: directory
+    owner: mongodb
+    group: mongodb
+    mode: '0700'
+
+- name: Copy MongoDB keyfile
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/files/mongodb-keyfile"
+    dest: /etc/mongodb/keyfile
+    owner: mongodb
+    group: mongodb
+    mode: '0400'
