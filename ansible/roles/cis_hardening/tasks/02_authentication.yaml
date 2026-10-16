@@ -1,0 +1,46 @@
+- name: "CIS 2.1 | Configure MongoDB authentication and keyfile"
+  ansible.builtin.blockinfile:
+    path: /etc/mongod.conf
+    marker: "# {mark} ANSIBLE MANAGED SECURITY"
+    insertafter: EOF
+    backup: true
+    block: |
+      security:
+        keyFile: /etc/mongodb/keyfile
+        authorization: enabled
+  register: security_config_result
+
+- name: "CIS 2.1 | Validate MongoDB configuration"
+  ansible.builtin.command:
+    argv:
+      - mongod
+      - --config
+      - /etc/mongod.conf
+      - --outputConfig
+  changed_when: false
+
+- name: "CIS 2.1 | Restart MongoDB when configuration changes"
+  ansible.builtin.systemd:
+    - name: mongod
+      state: restarted
+  when: security_config_result.changed
+
+- name: "CIS 2.1 | Wait for MongoDB to become available"
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 27017
+    state: started
+    timeout: 60
+
+- name: "CIS 2.1 | Check MongoDB service status"
+  ansible.builtin.command: systemctl is-active mongod
+  register: mongod_service
+  changed_when: false
+
+- name: "CIS 2.1 | Display hardening result"
+  ansible.builtin.debug:
+    msg:
+      node: "{{ inventory_hostname }}"
+      authentication_configured: true
+      remediation_performed: "{{ security_config_result.changed }}"
+      mongodb_service: "{{ mongod_service }}"

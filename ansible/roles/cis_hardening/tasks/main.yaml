@@ -1,0 +1,2 @@
+- name: "CIS 2.1 | Authentication"
+  ansible.builtin.import_tasks: 02_authentication.yaml
