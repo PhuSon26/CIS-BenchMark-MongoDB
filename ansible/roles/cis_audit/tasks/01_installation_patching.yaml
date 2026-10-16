@@ -1,0 +1,80 @@
+- name: "CIS 1.1 | Collect MongoDB server version"
+  ansible.builtin.command:
+    argv:
+      - mongod
+      - --version
+  register: cis_1_1_server_version
+  changed_when: false
+  failed_when: false
+
+- name: "CIS 1.1 | Collect installed MongoDB package version"
+  ansible.builtin.command:
+    argv:
+      - dpkg-query
+      - -W
+      - "-f=${Version}"
+      - mongodb-org-server
+  register: cis_1_1_installed_package
+  changed_when: false
+  failed_when: false
+
+- name: "CIS 1.1 | Collect MongoDB package policy"
+  ansible.builtin.command:
+    argv:
+      - apt-cache
+      - policy
+      - mongodb-org-server
+  register: cis_1_1_package_policy
+  changed_when: false
+  failed_when: false
+
+- name: "CIS 1.1 | Check available package updates"
+  ansible.builtin.command:
+    argv:
+      - apt
+      - list
+      - --upgradable
+  register: cis_1_1_upgradable_packages
+  changed_when: false
+  failed_when: false
+
+- name: "CIS 1.1 | Filter MongoDB-related updates"
+  ansible.builtin.set_fact: 
+    cis_1_1_mongodb_updates: >-
+      {{
+        cis_1_1_upgradable_packages.stdout_lines 
+        | defaults([]) 
+        | select('search', '(?i)mongodb|mongosh|mongo') 
+        | list
+      }}
+
+- name: "CIS 1.1 | Determine evidence collection status"
+  ansible.builtin.set_fact:
+    cis_1_1_collection_status: >-
+      {{
+        'ERROR'
+        if (
+          cis_1_1_server_version.rc != 0
+          or cis_1_1_installed_package.rc != 0
+          or cis_1_1_package_policy.rc != 0
+          or cis_1_1_upgradable_packages.rc != 0
+        )
+        else 'REVIEW_REQUIRED'
+      }}
+
+- name: "CIS 1.1 | Display collected evidence"
+  ansible.builtin.debug:
+    msg:
+      control: "1.1"
+      recomendation: >-
+        Ensure the appropriate MongoDB software version/patches are installed
+      node: "{{ inventory_hostname }}"
+      server_version: >-
+        {{ cis_1_1_server_version.stdout | defaults('NOT_FOUND') }}
+      installed_package_version: >-
+        {{ cis_1_1_installed_package.stdout | defaults('NOT_FOUND') }}
+      package_policy: >-
+        {{ cis_1_1_package_policy.stdout | defaults('') }}
+      mongodb_updates: "{{ cis_1_1_mongodb_updates }}"
+      assessment: "{{ cis_1_1_collection_status }}"
+      remediation_performed: false
