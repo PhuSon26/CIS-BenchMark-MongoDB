@@ -72,6 +72,7 @@
       setParameter:
         enableLocalhostAuthBypass: false
   register: localhost_bypass_config_result
+  notify: Restart MongoDB
 
 - name: "CIS 2.2 | Validate MongoDB configuration"
   ansible.builtin.command:
