@@ -1,4 +1,19 @@
-- name: "CIS 2.1 | Configure MongoDB authentication and keyfile"
+---
+- name: "CIS 2.1 | Ensure keyfile exists"
+  ansible.builtin.stat:
+    path: /etc/mongodb/keyfile
+  register: mongodb_keyfile
+
+- name: "CIS 2.1 | Validate keyfile permissions"
+  ansible.builtin.assert:
+    that:
+      - mongodb_keyfile.stat.exists
+      - mongodb_keyfile.stat.pw_name == "mongodb"
+      - mongodb_keyfile.stat.gr_name == "mongodb"
+      - mongodb_keyfile.stat.mode == "0400"
+    fail_msg: "MongoDB keyfile is missing or has incorrect ownership/permissions."
+
+- name: "CIS 2.1 | Configure authentication and keyfile"
   ansible.builtin.blockinfile:
     path: /etc/mongod.conf
     marker: "# {mark} ANSIBLE MANAGED SECURITY"
@@ -18,19 +33,21 @@
       - /etc/mongod.conf
       - --outputConfig
   changed_when: false
+  no_log: true
 
 - name: "CIS 2.1 | Restart MongoDB when configuration changes"
   ansible.builtin.systemd:
-    - name: mongod
-      state: restarted
+    name: mongod
+    state: restarted
   when: security_config_result.changed
 
-- name: "CIS 2.1 | Wait for MongoDB to become available"
+- name: "CIS 2.1 | Wait for MongoDB port"
   ansible.builtin.wait_for:
     host: "{{ ansible_host }}"
     port: 27017
     state: started
-    timeout: 60
+    timeout: 90
+  when: security_config_result.changed
 
 - name: "CIS 2.1 | Check MongoDB service status"
   ansible.builtin.command: systemctl is-active mongod
@@ -43,4 +60,4 @@
       node: "{{ inventory_hostname }}"
       authentication_configured: true
       remediation_performed: "{{ security_config_result.changed }}"
-      mongodb_service: "{{ mongod_service }}"
+      mongodb_service: "{{ mongod_service.stdout }}"
