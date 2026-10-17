@@ -13,3 +13,18 @@
       node: "{{ inventory_hostname }}"
       assessment: "{{ 'PASS' if auth_check.rc == 0 else 'FAIL' }}"
       remediation_performed: false
+
+- name: "CIS 2.2 | Collect localhost excepion configuration"
+  ansible.builtin.shell:
+    cat /etc/mongod.conf |grep "enableLocalhostAuthBypass"
+  register: localhost_bypass_check
+  changed_when: false
+  failed_when: false
+
+- name: "CIS 2.2 | Display audit result"
+  ansible.builtin.debug:
+    msg:
+      control: "2.2"
+      node: "{{ inventory_hostname }}"
+      assessment: "{{ 'PASS' if localhost_bypass_check.stdout is search('enableLocalhostAuthBypass:\\s*false') else 'FAIL' }}"
+      remediation_performed: false
