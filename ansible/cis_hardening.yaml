@@ -1,0 +1,8 @@
+---
+- name: Apply MongoDB CIS authentication hardening
+  hosts: mongodb_nodes
+  become: true
+  serial: 1
+  order: reverse_inventory
+  roles:
+    - cis_hardening
