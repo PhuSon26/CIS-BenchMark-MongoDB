@@ -1,4 +1,4 @@
----
+### CIS 2.1 ###
 - name: "CIS 2.1 | Ensure keyfile exists"
   ansible.builtin.stat:
     path: /etc/mongodb/keyfile
@@ -61,3 +61,23 @@
       authentication_configured: true
       remediation_performed: "{{ security_config_result.changed }}"
       mongodb_service: "{{ mongod_service.stdout }}"
+### CIS 2.2 ###
+- name: "CIS 2.2 | Disable localhost authentication bypass"
+  ansible.builtin.blockinfile:
+    path: /etc/mongod.conf
+    marker: "# {mark} ANSIBLE MANAGED CIS 2.2"
+    insertafter: EOF
+    backup: true
+    block: |
+      setParameter:
+        enableLocalhostAuthBypass: false
+  register: localhost_bypass_config_result
+
+- name: "CIS 2.2 | Validate MongoDB configuration"
+  ansible.builtin.command:
+    argv:
+      - mongod
+      - --config
+      - /etc/mongod.conf
+      - --outputConfig
+  changed_when: false
