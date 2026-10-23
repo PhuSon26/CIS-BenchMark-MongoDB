@@ -1,0 +1,141 @@
+
+PLAY [CIS Benchmark - Section 1 Installation and Patching] *********************
+
+TASK [cis_audit : CIS 1.1 | Collect MongoDB server version] ********************
+ok: [mongodb2]
+ok: [mongodb3]
+ok: [mongodb1]
+
+TASK [cis_audit : CIS 1.1 | Collect installed MongoDB package version] *********
+ok: [mongodb1]
+ok: [mongodb2]
+ok: [mongodb3]
+
+TASK [cis_audit : CIS 1.1 | Collect MongoDB package policy] ********************
+ok: [mongodb2]
+ok: [mongodb1]
+ok: [mongodb3]
+
+TASK [cis_audit : CIS 1.1 | Check available package updates] *******************
+ok: [mongodb1]
+ok: [mongodb2]
+ok: [mongodb3]
+
+TASK [cis_audit : CIS 1.1 | Filter MongoDB-related updates] ********************
+ok: [mongodb1]
+ok: [mongodb2]
+ok: [mongodb3]
+
+TASK [cis_audit : CIS 1.1 | Determine evidence collection status] **************
+ok: [mongodb1]
+ok: [mongodb2]
+ok: [mongodb3]
+
+TASK [cis_audit : CIS 1.1 | Display collected evidence] ************************
+ok: [mongodb1] => {
+    "msg": {
+        "assessment": "REVIEW_REQUIRED",
+        "control": "1.1",
+        "installed_package_version": "8.0.34",
+        "mongodb_updates": [],
+        "node": "mongodb1",
+        "package_policy": "mongodb-org-server:\n  Installed: 8.0.34\n  Candidate: 8.0.34\n  Version table:\n *** 8.0.34 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n        100 /var/lib/dpkg/status\n     8.0.32 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.30 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.29 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.28 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.26 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.25 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.24 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.23 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.21 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.20 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.19 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.18 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.17 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.16 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.15 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.14 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.13 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.12 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.11 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.10 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.9 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.8 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.7 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.6 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.5 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.4 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.3 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.1 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.0 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages",
+        "recomendation": "Ensure the appropriate MongoDB software version/patches are installed",
+        "remediation_performed": false,
+        "server_version": "db version v8.0.34\nBuild Info: {\n    \"version\": \"8.0.34\",\n    \"gitVersion\": \"51db4515a6597aedcf6188ee4e48a27e65b065ae\",\n    \"openSSLVersion\": \"OpenSSL 3.0.13 30 Jan 2024\",\n    \"modules\": [],\n    \"allocator\": \"tcmalloc-google\",\n    \"environment\": {\n        \"distmod\": \"ubuntu2404\",\n        \"distarch\": \"x86_64\",\n        \"target_arch\": \"x86_64\"\n    }\n}"
+    }
+}
+ok: [mongodb2] => {
+    "msg": {
+        "assessment": "REVIEW_REQUIRED",
+        "control": "1.1",
+        "installed_package_version": "8.0.34",
+        "mongodb_updates": [],
+        "node": "mongodb2",
+        "package_policy": "mongodb-org-server:\n  Installed: 8.0.34\n  Candidate: 8.0.34\n  Version table:\n *** 8.0.34 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n        100 /var/lib/dpkg/status\n     8.0.32 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.30 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.29 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.28 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.26 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.25 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.24 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.23 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.21 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.20 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.19 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.18 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.17 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.16 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.15 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.14 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.13 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.12 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.11 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.10 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.9 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.8 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.7 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.6 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.5 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.4 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.3 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.1 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.0 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages",
+        "recomendation": "Ensure the appropriate MongoDB software version/patches are installed",
+        "remediation_performed": false,
+        "server_version": "db version v8.0.34\nBuild Info: {\n    \"version\": \"8.0.34\",\n    \"gitVersion\": \"51db4515a6597aedcf6188ee4e48a27e65b065ae\",\n    \"openSSLVersion\": \"OpenSSL 3.0.13 30 Jan 2024\",\n    \"modules\": [],\n    \"allocator\": \"tcmalloc-google\",\n    \"environment\": {\n        \"distmod\": \"ubuntu2404\",\n        \"distarch\": \"x86_64\",\n        \"target_arch\": \"x86_64\"\n    }\n}"
+    }
+}
+ok: [mongodb3] => {
+    "msg": {
+        "assessment": "REVIEW_REQUIRED",
+        "control": "1.1",
+        "installed_package_version": "8.0.34",
+        "mongodb_updates": [],
+        "node": "mongodb3",
+        "package_policy": "mongodb-org-server:\n  Installed: 8.0.34\n  Candidate: 8.0.34\n  Version table:\n *** 8.0.34 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n        100 /var/lib/dpkg/status\n     8.0.32 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.30 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.29 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.28 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.26 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.25 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.24 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.23 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.21 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.20 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.19 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.18 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.17 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.16 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.15 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.14 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.13 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.12 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.11 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.10 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.9 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.8 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.7 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.6 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.5 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.4 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.3 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.1 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages\n     8.0.0 500\n        500 https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0/multiverse amd64 Packages",
+        "recomendation": "Ensure the appropriate MongoDB software version/patches are installed",
+        "remediation_performed": false,
+        "server_version": "db version v8.0.34\nBuild Info: {\n    \"version\": \"8.0.34\",\n    \"gitVersion\": \"51db4515a6597aedcf6188ee4e48a27e65b065ae\",\n    \"openSSLVersion\": \"OpenSSL 3.0.13 30 Jan 2024\",\n    \"modules\": [],\n    \"allocator\": \"tcmalloc-google\",\n    \"environment\": {\n        \"distmod\": \"ubuntu2404\",\n        \"distarch\": \"x86_64\",\n        \"target_arch\": \"x86_64\"\n    }\n}"
+    }
+}
+
+TASK [cis_audit : CIS 2.1 | Collect authentication configuration] **************
+ok: [mongodb1]
+ok: [mongodb2]
+ok: [mongodb3]
+
+TASK [cis_audit : CIS 2.1 | Display audit result] ******************************
+ok: [mongodb1] => {
+    "msg": {
+        "assessment": "PASS",
+        "control": "2.1",
+        "node": "mongodb1",
+        "remediation_performed": false
+    }
+}
+ok: [mongodb2] => {
+    "msg": {
+        "assessment": "PASS",
+        "control": "2.1",
+        "node": "mongodb2",
+        "remediation_performed": false
+    }
+}
+ok: [mongodb3] => {
+    "msg": {
+        "assessment": "PASS",
+        "control": "2.1",
+        "node": "mongodb3",
+        "remediation_performed": false
+    }
+}
+
+TASK [cis_audit : CIS 2.2 | Collect localhost excepion configuration] **********
+ok: [mongodb1]
+ok: [mongodb2]
+ok: [mongodb3]
+
+TASK [cis_audit : CIS 2.2 | Display audit result] ******************************
+ok: [mongodb1] => {
+    "msg": {
+        "assessment": "PASS",
+        "control": "2.2",
+        "node": "mongodb1",
+        "remediation_performed": false
+    }
+}
+ok: [mongodb2] => {
+    "msg": {
+        "assessment": "PASS",
+        "control": "2.2",
+        "node": "mongodb2",
+        "remediation_performed": false
+    }
+}
+ok: [mongodb3] => {
+    "msg": {
+        "assessment": "PASS",
+        "control": "2.2",
+        "node": "mongodb3",
+        "remediation_performed": false
+    }
+}
+
+PLAY RECAP *********************************************************************
+mongodb1                   : ok=11   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+mongodb2                   : ok=11   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+mongodb3                   : ok=11   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
