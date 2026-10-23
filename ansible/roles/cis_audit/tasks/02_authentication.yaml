@@ -2,7 +2,7 @@
 - name: "CIS 2.1 | Collect authentication configuration"
   ansible.builtin.shell: |
     grep -Eq '^[[:space:]]*authorization:[[:space:]]*["'\'']?enabled["'\'']?[[:space:]]*$' /etc/mongod.conf
-  register: auth_check
+  register: cis_2_1_auth_check
   changed_when: false
   failed_when: false
 
@@ -11,13 +11,13 @@
     msg:
       control: "2.1"
       node: "{{ inventory_hostname }}"
-      assessment: "{{ 'PASS' if auth_check.rc == 0 else 'FAIL' }}"
+      assessment: "{{ 'PASS' if cis_2_1_auth_check.rc == 0 else 'FAIL' }}"
       remediation_performed: false
 
 - name: "CIS 2.2 | Collect localhost excepion configuration"
   ansible.builtin.shell:
     cat /etc/mongod.conf |grep "enableLocalhostAuthBypass"
-  register: localhost_bypass_check
+  register: cis_2_1_localhost_bypass_check
   changed_when: false
   failed_when: false
 
@@ -26,5 +26,5 @@
     msg:
       control: "2.2"
       node: "{{ inventory_hostname }}"
-      assessment: "{{ 'PASS' if localhost_bypass_check.stdout is search('enableLocalhostAuthBypass:\\s*false') else 'FAIL' }}"
+      assessment: "{{ 'PASS' if cis_2_1_localhost_bypass_check.stdout is search('enableLocalhostAuthBypass:\\s*false') else 'FAIL' }}"
       remediation_performed: false

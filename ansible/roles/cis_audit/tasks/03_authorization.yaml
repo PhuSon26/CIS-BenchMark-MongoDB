@@ -1,0 +1,51 @@
+- name: "CIS 3.1 | Ensure least privilege for database accounts"
+  ansible.builtin.command:
+    argv:
+      - mongosh
+      - --quiet
+      - --host
+      - 127.0.0.1
+      - --port
+      - "27017"
+      - --username
+      - MongoAdmin
+      - --password
+      - "{{ mongodb_admin_password }}"
+      - --authenticationDatabase
+      - admin
+      - --eval
+      - |
+        print(JSON.stringify(
+          db.getSiblingDB("admin").system.users.find({
+            roles: {
+              $elemMatch: {
+                role: {
+                  $in: ["dbOwner", "userAdmin", "userAdminAnyDatabase"]
+                },
+                db: "admin"
+              }
+            }
+          }).toArray()
+        ))
+  register: cis_3_1_audit
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: "CIS 3.1 | Determine audit status"
+  ansible.builtin.set_fact:
+    cis_3_1_accounts: "{{ cis_3_1_audit.stdout | from_json }}"
+    cis_3_1_status: >-
+      {{ 'ERROR' if cis_3_1_audit.rc != 0 else
+         'PASS' if (cis_3_1_audit.stdout | from_json | length) == 0 else
+         'REVIEW_REQUIRED' }}
+  when: cis_3_1_audit.rc == 0
+
+- name: "CIS 3.1 | Display audit result"
+  ansible.builtin.debug:
+    msg:
+      control: "3.1"
+      node: "{{ inventory_hostname }}"
+      assessment: "{{ cis_3_1_status | default('ERROR') }}"
+      matched_accounts: "{{ cis_3_1_accounts | default([]) | length }}"
+      remediation_performed: false
