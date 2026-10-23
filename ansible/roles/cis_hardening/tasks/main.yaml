@@ -1,3 +1,6 @@
 ---
 - name: "CIS 2.1 | Authentication"
   ansible.builtin.import_tasks: 02_authentication.yaml
+
+- name: "CIS 5.4 | Logging"
+  ansible.builtin.import_tasks: 05_logging.yaml

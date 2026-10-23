@@ -1,0 +1,48 @@
+- name: "CIS 5.4 | Enable systemLog.logAppend"
+  ansible.builtin.lineinfile:
+    path: /etc/mongod.conf
+    regexp: '^[ \t]*logAppend:[ \t]*'
+    line: '  logAppend: true'
+    insertafter: '^[ \t]*systemLog:'
+    state: present
+  register: cis_5_4_remediation
+
+- name: "CIS 5.4 | Validate MongoDB configuration"
+  ansible.builtin.command:
+    argv:
+      - mongod
+      - --config
+      - /etc/mongod.conf
+      - --outputConfig
+  register: cis_5_4_validation
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: "CIS 5.4 | Abort if configuration is invalid"
+  ansible.builtin.fail:
+    msg: "Invalid MongoDB configuration after enabling logAppend - check /etc/mongod.conf"
+  when: cis_5_4_validation.rc != 0
+
+- name: "CIS 5.4 | Restart MongoDB when configuration changes"
+  ansible.builtin.systemd:
+    name: mongod
+    state: restarted
+  when: cis_5_4_remediation.changed
+
+- name: "CIS 5.4 | Wait for MongoDB port"
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 27017
+    state: started
+    timeout: 90
+  when: cis_5_4_remediation.changed
+
+- name: "CIS 5.4 | Display hardening result"
+  ansible.builtin.debug:
+    msg:
+      node: "{{ inventory_hostname }}"
+      control: "5.4"
+      log_append_enabled: true
+      remediation_performed: "{{ cis_5_4_remediation.changed }}"
+      mongod_service: "{{ cis_5_4_validation.stdout | length > 0 }}"

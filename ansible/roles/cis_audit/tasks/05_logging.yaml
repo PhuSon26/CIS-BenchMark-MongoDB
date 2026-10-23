@@ -1,0 +1,34 @@
+- name: "CIS 5.4 | Collect effective MongoDB configuration"
+  ansible.builtin.command:
+    argv:
+      - mongod
+      - --config
+      - /etc/mongod.conf
+      - --outputConfig
+  register: cis_5_4_config
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: "CIS 5.4 | Extract systemLog.logAppend value"
+  ansible.builtin.set_fact:
+    cis_5_4_log_append: >-
+      {{
+        (
+          (cis_5_4_config.stdout | from_yaml)
+          if (cis_5_4_config.rc == 0 and cis_5_4_config.stdout | length > 0)
+          else {}
+        )
+        | default({}, true)
+        | .get('systemLog', {})
+        | .get('logAppend', 'NOT_FOUND')
+      }}
+
+- name: "CIS 5.4 | Display audit result"
+  ansible.builtin.debug:
+    msg:
+      control: "5.4"
+      node: "{{ inventory_hostname }}"
+      log_append: "{{ cis_5_4_log_append }}"
+      assessment: "{{ 'PASS' if cis_5_4_log_append | bool else 'FAIL' }}"
+      remediation_performed: false
