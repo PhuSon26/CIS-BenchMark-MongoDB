@@ -1,3 +1,109 @@
+---
+# 5.3 Ensure that logging captures as much information as possible
+
+- name: "CIS 5.3 | Collect MongoDB version and edition"
+  ansible.builtin.command:
+    argv:
+      - mongod
+      - --version
+  register: cis_5_3_version
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: "CIS 5.3 | Collect installed MongoDB package names"
+  ansible.builtin.shell: |
+    dpkg-query -W -f='${Package}\n' 'mongodb*' 2>/dev/null || true
+  register: cis_5_3_packages
+  changed_when: false
+  failed_when: false
+
+- name: "CIS 5.3 | Determine edition"
+  ansible.builtin.set_fact:
+    cis_5_3_edition: >-
+      {{
+        'enterprise'
+        if (
+          ('enterprise' in (cis_5_3_version.stdout | default('') | lower))
+          or ('enterprise' in (cis_5_3_packages.stdout | default('') | lower))
+        )
+        else 'community'
+      }}
+
+- name: "CIS 5.3 | Collect effective MongoDB configuration"
+  ansible.builtin.command:
+    argv:
+      - mongod
+      - --config
+      - /etc/mongod.conf
+      - --outputConfig
+  register: cis_5_3_config
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: "CIS 5.3 | Extract systemLog.quiet from effective configuration"
+  ansible.builtin.set_fact:
+    cis_5_3_quiet_raw: >-
+      {%- set cfg = (cis_5_3_config.stdout | from_yaml)
+            if (cis_5_3_config.rc == 0 and (cis_5_3_config.stdout | default('') | length) > 0)
+            else {} -%}
+      {%- set slog = (cfg | default({}, true)).get('systemLog') or {} -%}
+      {{- slog.get('quiet', 'NOT_FOUND') -}}
+
+- name: "CIS 5.3 | Normalize quiet value"
+  ansible.builtin.set_fact:
+    cis_5_3_quiet_norm: "{{ cis_5_3_quiet_raw | string | lower }}"
+
+- name: "CIS 5.3 | Determine assessment"
+  ansible.builtin.set_fact:
+    cis_5_3_assessment: >-
+      {{
+        'NOT_APPLICABLE'
+        if cis_5_3_edition != 'enterprise'
+        else (
+          'PASS'
+          if (cis_5_3_quiet_norm in ['false', 'not_found'])
+          else 'FAIL'
+        )
+      }}
+
+- name: "CIS 5.3 | Build audit note"
+  ansible.builtin.set_fact:
+    cis_5_3_note: >-
+      {{
+        'systemLog.quiet is explicitly set to false'
+        if cis_5_3_quiet_norm == 'false'
+        else (
+          'systemLog.quiet is not declared - MongoDB default is false'
+          if cis_5_3_quiet_norm == 'not_found'
+          else 'systemLog.quiet is enabled - connection, authentication and replication events are not logged'
+        )
+      }}
+
+- name: "CIS 5.3 | Extract server version"
+  ansible.builtin.set_fact:
+    cis_5_3_server_version: >-
+      {%- set out = cis_5_3_version.stdout | default('') -%}
+      {%- set parts = out.splitlines() -%}
+      {{- (parts[0] | trim) if (parts | length) > 0 else 'NOT_FOUND' -}}
+
+- name: "CIS 5.3 | Display audit result"
+  ansible.builtin.debug:
+    msg:
+      control: "5.3"
+      node: "{{ inventory_hostname }}"
+      edition: "{{ cis_5_3_edition }}"
+      server_version: "{{ cis_5_3_server_version }}"
+      quiet_value: "{{ cis_5_3_quiet_raw }}"
+      assessment: "{{ cis_5_3_assessment }}"
+      note: "{{ cis_5_3_note }}"
+      recomendation: "Set systemLog.quiet to false in /etc/mongod.conf"
+      remediation_performed: false
+
+
+# 5.4 Ensure that new entries are appended to the end of the log
+
 - name: "CIS 5.4 | Collect effective MongoDB configuration"
   ansible.builtin.command:
     argv:
@@ -10,18 +116,35 @@
   failed_when: false
   no_log: true
 
-- name: "CIS 5.4 | Extract systemLog.logAppend value"
+- name: "CIS 5.4 | Extract systemLog.logAppend from effective configuration"
   ansible.builtin.set_fact:
-    cis_5_4_log_append: >-
+    cis_5_4_log_append_raw: >-
+      {%- set cfg = (cis_5_4_config.stdout | from_yaml)
+            if (cis_5_4_config.rc == 0 and (cis_5_4_config.stdout | default('') | length) > 0)
+            else {} -%}
+      {%- set slog = (cfg | default({}, true)).get('systemLog') or {} -%}
+      {{- slog.get('logAppend', 'NOT_FOUND') -}}
+
+- name: "CIS 5.4 | Normalize logAppend value"
+  ansible.builtin.set_fact:
+    cis_5_4_log_append_norm: "{{ cis_5_4_log_append_raw | string | lower }}"
+
+- name: "CIS 5.4 | Determine assessment"
+  ansible.builtin.set_fact:
+    cis_5_4_assessment: >-
+      {{ 'PASS' if cis_5_4_log_append_norm == 'true' else 'FAIL' }}
+
+- name: "CIS 5.4 | Build audit note"
+  ansible.builtin.set_fact:
+    cis_5_4_note: >-
       {{
-        (
-          (cis_5_4_config.stdout | from_yaml)
-          if (cis_5_4_config.rc == 0 and cis_5_4_config.stdout | length > 0)
-          else {}
+        'systemLog.logAppend is true - new entries are appended after restart'
+        if cis_5_4_log_append_norm == 'true'
+        else (
+          'systemLog.logAppend is not declared - MongoDB default is false (log file is overwritten on restart)'
+          if cis_5_4_log_append_norm == 'not_found'
+          else 'systemLog.logAppend is false - the log file is overwritten on restart'
         )
-        | default({}, true)
-        | .get('systemLog', {})
-        | .get('logAppend', 'NOT_FOUND')
       }}
 
 - name: "CIS 5.4 | Display audit result"
@@ -29,6 +152,8 @@
     msg:
       control: "5.4"
       node: "{{ inventory_hostname }}"
-      log_append: "{{ cis_5_4_log_append }}"
-      assessment: "{{ 'PASS' if cis_5_4_log_append | bool else 'FAIL' }}"
+      log_append: "{{ cis_5_4_log_append_raw }}"
+      assessment: "{{ cis_5_4_assessment }}"
+      note: "{{ cis_5_4_note }}"
+      recomendation: "Set systemLog.logAppend to true in /etc/mongod.conf"
       remediation_performed: false

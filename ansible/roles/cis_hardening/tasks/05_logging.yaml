@@ -1,10 +1,129 @@
+---
+# 5.3 Ensure that logging captures as much information as possible
+
+- name: "CIS 5.3 | Collect MongoDB version and edition"
+  ansible.builtin.command:
+    argv:
+      - mongod
+      - --version
+  register: cis_5_3_version
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: "CIS 5.3 | Collect installed MongoDB package names"
+  ansible.builtin.shell: |
+    dpkg-query -W -f='${Package}\n' 'mongodb*' 2>/dev/null || true
+  register: cis_5_3_packages
+  changed_when: false
+  failed_when: false
+
+- name: "CIS 5.3 | Determine edition"
+  ansible.builtin.set_fact:
+    cis_5_3_edition: >-
+      {{
+        'enterprise'
+        if (
+          ('enterprise' in (cis_5_3_version.stdout | default('') | lower))
+          or ('enterprise' in (cis_5_3_packages.stdout | default('') | lower))
+        )
+        else 'community'
+      }}
+
+- name: "CIS 5.3 | Ensure systemLog section exists"
+  ansible.builtin.lineinfile:
+    path: /etc/mongod.conf
+    regexp: '^[ \t]*systemLog:[ \t]*$'
+    line: 'systemLog:'
+    state: present
+    insertbefore: BOTTOM
+  register: cis_5_3_systemlog_section
+
+- name: "CIS 5.3 | Ensure systemLog.quiet is set to false"
+  ansible.builtin.lineinfile:
+    path: /etc/mongod.conf
+    regexp: '^[ \t]*quiet:[ \t]*(true|false)[ \t]*$'
+    line: '  quiet: false'
+    state: present
+    insertafter: '^[ \t]*systemLog:[ \t]*$'
+  register: cis_5_3_remediation
+
+- name: "CIS 5.3 | Validate MongoDB configuration"
+  ansible.builtin.command:
+    argv:
+      - mongod
+      - --config
+      - /etc/mongod.conf
+      - --outputConfig
+  register: cis_5_3_validation
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: "CIS 5.3 | Abort if configuration is invalid"
+  ansible.builtin.fail:
+    msg: "Invalid MongoDB configuration after applying CIS 5.3 - check /etc/mongod.conf"
+  when: cis_5_3_validation.rc != 0
+
+- name: "CIS 5.3 | Verify systemLog.quiet is false in effective config"
+  ansible.builtin.assert:
+    that:
+      - "(cis_5_3_effective_quiet | string | lower) in ['false', 'not_found']"
+    fail_msg: "systemLog.quiet is not false after remediation"
+  when: cis_5_3_validation.rc == 0
+  vars:
+    cis_5_3_effective_quiet: >-
+      {%- set cfg = (cis_5_3_validation.stdout | from_yaml)
+            if (cis_5_3_validation.rc == 0 and (cis_5_3_validation.stdout | default('') | length) > 0)
+            else {} -%}
+      {%- set slog = (cfg | default({}, true)).get('systemLog') or {} -%}
+      {{- slog.get('quiet', 'NOT_FOUND') -}}
+
+- name: "CIS 5.3 | Restart MongoDB when configuration changes"
+  ansible.builtin.systemd:
+    name: mongod
+    state: restarted
+  when: cis_5_3_remediation.changed or cis_5_3_systemlog_section.changed
+
+- name: "CIS 5.3 | Wait for MongoDB port"
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 27017
+    state: started
+    timeout: 90
+  when: cis_5_3_remediation.changed or cis_5_3_systemlog_section.changed
+
+- name: "CIS 5.3 | Display hardening result"
+  ansible.builtin.debug:
+    msg:
+      node: "{{ inventory_hostname }}"
+      control: "5.3"
+      edition: "{{ cis_5_3_edition }}"
+      quiet_value: "false"
+      remediation_performed: "{{ cis_5_3_remediation.changed or cis_5_3_systemlog_section.changed }}"
+      note: >-
+        systemLog.quiet is set to false so that connection, authentication and
+        replication events are logged.
+
+
+# 5.4 Ensure that new entries are appended to the end of the log
+
+- name: "CIS 5.4 | Ensure systemLog section exists"
+  ansible.builtin.lineinfile:
+    path: /etc/mongod.conf
+    regexp: '^[ \t]*systemLog:[ \t]*$'
+    line: 'systemLog:'
+    state: present
+    insertbefore: BOTTOM
+  register: cis_5_4_systemlog_section
+
 - name: "CIS 5.4 | Enable systemLog.logAppend"
   ansible.builtin.lineinfile:
     path: /etc/mongod.conf
-    regexp: '^[ \t]*logAppend:[ \t]*'
+    regexp: '^[ \t]*logAppend:[ \t]*(true|false)[ \t]*$'
     line: '  logAppend: true'
-    insertafter: '^[ \t]*systemLog:'
     state: present
+    insertafter: '^[ \t]*systemLog:[ \t]*$'
   register: cis_5_4_remediation
 
 - name: "CIS 5.4 | Validate MongoDB configuration"
@@ -24,11 +143,25 @@
     msg: "Invalid MongoDB configuration after enabling logAppend - check /etc/mongod.conf"
   when: cis_5_4_validation.rc != 0
 
+- name: "CIS 5.4 | Verify systemLog.logAppend is true in effective config"
+  ansible.builtin.assert:
+    that:
+      - "(cis_5_4_effective_log_append | string | lower) == 'true'"
+    fail_msg: "systemLog.logAppend is not true after remediation"
+  when: cis_5_4_validation.rc == 0
+  vars:
+    cis_5_4_effective_log_append: >-
+      {%- set cfg = (cis_5_4_validation.stdout | from_yaml)
+            if (cis_5_4_validation.rc == 0 and (cis_5_4_validation.stdout | default('') | length) > 0)
+            else {} -%}
+      {%- set slog = (cfg | default({}, true)).get('systemLog') or {} -%}
+      {{- slog.get('logAppend', 'NOT_FOUND') -}}
+
 - name: "CIS 5.4 | Restart MongoDB when configuration changes"
   ansible.builtin.systemd:
     name: mongod
     state: restarted
-  when: cis_5_4_remediation.changed
+  when: cis_5_4_remediation.changed or cis_5_4_systemlog_section.changed
 
 - name: "CIS 5.4 | Wait for MongoDB port"
   ansible.builtin.wait_for:
@@ -36,7 +169,7 @@
     port: 27017
     state: started
     timeout: 90
-  when: cis_5_4_remediation.changed
+  when: cis_5_4_remediation.changed or cis_5_4_systemlog_section.changed
 
 - name: "CIS 5.4 | Display hardening result"
   ansible.builtin.debug:
@@ -44,5 +177,5 @@
       node: "{{ inventory_hostname }}"
       control: "5.4"
       log_append_enabled: true
-      remediation_performed: "{{ cis_5_4_remediation.changed }}"
+      remediation_performed: "{{ cis_5_4_remediation.changed or cis_5_4_systemlog_section.changed }}"
       mongod_service: "{{ cis_5_4_validation.stdout | length > 0 }}"

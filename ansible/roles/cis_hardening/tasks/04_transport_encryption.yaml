@@ -1,0 +1,156 @@
+---
+- name: "CIS 4.x | Ensure net section exists"
+  ansible.builtin.lineinfile:
+    path: /etc/mongod.conf
+    regexp: '^net:[ \t]*$'
+    line: 'net:'
+    state: present
+    insertbefore: BOTTOM
+  register: cis_4_net_section
+
+- name: "CIS 4.x | Detect existing TLS section name"
+  ansible.builtin.shell: |
+    if grep -Eq '^[[:blank:]]{2}ssl:[[:blank:]]*$' /etc/mongod.conf; then
+      echo "ssl"
+    else
+      echo "tls"
+    fi
+  register: cis_4_tls_section_name
+  changed_when: false
+  failed_when: false
+
+- name: "CIS 4.x | Set TLS section fact"
+  ansible.builtin.set_fact:
+    cis_4_tls_key: >-
+      {{ (cis_4_tls_section_name.stdout | default('tls') | trim)
+         if (cis_4_tls_section_name.stdout | default('tls') | trim) in ['tls', 'ssl']
+         else 'tls' }}
+
+- name: "CIS 4.x | Ensure TLS section exists"
+  ansible.builtin.lineinfile:
+    path: /etc/mongod.conf
+    regexp: '^[ \t]{2}{{ cis_4_tls_key }}:[ \t]*$'
+    line: "  {{ cis_4_tls_key }}:"
+    state: present
+    insertafter: '^net:[ \t]*$'
+  register: cis_4_tls_section
+
+- name: "CIS 4.1 / 4.2 | Disable weak TLS protocols"
+  ansible.builtin.lineinfile:
+    path: /etc/mongod.conf
+    regexp: '^[ \t]*disabledProtocols:[ \t]*'
+    line: '    disabledProtocols: TLS1_0,TLS1_1'
+    state: present
+    insertafter: '^[ \t]{2}{{ cis_4_tls_key }}:[ \t]*$'
+  register: cis_4_remediation
+
+- name: "CIS 4.x | Validate MongoDB configuration"
+  ansible.builtin.command:
+    argv:
+      - mongod
+      - --config
+      - /etc/mongod.conf
+      - --outputConfig
+  register: cis_4_validation
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: "CIS 4.x | Abort if configuration is invalid"
+  ansible.builtin.fail:
+    msg: "Invalid MongoDB configuration after disabling weak TLS protocols - check /etc/mongod.conf"
+  when: cis_4_validation.rc != 0
+
+- name: "CIS 4.x | Extract effective disabledProtocols"
+  ansible.builtin.set_fact:
+    cis_4_effective_raw: >-
+      {%- set cfg = (cis_4_validation.stdout | from_yaml)
+            if (cis_4_validation.rc == 0 and (cis_4_validation.stdout | default('') | length) > 0)
+            else {} -%}
+      {%- set net = (cfg | default({}, true)).get('net') or {} -%}
+      {%- set tls = net.get('tls') or net.get('ssl') or {} -%}
+      {{- tls.get('disabledProtocols', []) | default([], true) -}}
+
+- name: "CIS 4.x | Normalize effective disabledProtocols"
+  ansible.builtin.set_fact:
+    cis_4_effective_csv: >-
+      {%- set raw = cis_4_effective_raw -%}
+      {%- set csv = (raw | join(',')) if (raw is not string) else raw -%}
+      {{- csv | replace(' ', '') | upper -}}
+
+- name: "CIS 4.x | Build effective disabled protocol list"
+  ansible.builtin.set_fact:
+    cis_4_effective_list: >-
+      {{ cis_4_effective_csv.split(',') | select('!=', '') | list }}
+
+- name: "CIS 4.x | Extract effective TLS mode"
+  ansible.builtin.set_fact:
+    cis_4_tls_mode: >-
+      {%- set cfg = (cis_4_validation.stdout | from_yaml)
+            if (cis_4_validation.rc == 0 and (cis_4_validation.stdout | default('') | length) > 0)
+            else {} -%}
+      {%- set net = (cfg | default({}, true)).get('net') or {} -%}
+      {%- set tls = net.get('tls') or net.get('ssl') or {} -%}
+      {{- tls.get('mode', 'disable') | default('disable', true) -}}
+
+# 4.1 Ensure legacy TLS protocols are disabled (Automated)
+
+- name: "CIS 4.1 | Verify legacy TLS protocols are disabled"
+  ansible.builtin.assert:
+    that:
+      - "'TLS1_0' in cis_4_effective_list"
+      - "'TLS1_1' in cis_4_effective_list"
+      - "'TLS1_2' not in cis_4_effective_list"
+      - "'TLS1_3' not in cis_4_effective_list"
+    fail_msg: >-
+      net.tls.disabledProtocols must contain TLS1_0,TLS1_1 and must not
+      disable TLS1_2/TLS1_3 (control 4.1)
+  when: cis_4_validation.rc == 0
+
+# 4.2 Ensure Weak Protocols are Disabled (Automated)
+
+- name: "CIS 4.2 | Verify weak protocols are disabled"
+  ansible.builtin.assert:
+    that:
+      - "'TLS1_0,TLS1_1' in cis_4_effective_csv"
+    fail_msg: >-
+      net.tls.disabledProtocols must contain the exact string
+      TLS1_0,TLS1_1 (control 4.2)
+  when: cis_4_validation.rc == 0
+
+- name: "CIS 4.x | Restart MongoDB when configuration changes"
+  ansible.builtin.systemd:
+    name: mongod
+    state: restarted
+  when: >-
+    cis_4_remediation.changed
+    or cis_4_tls_section.changed
+    or cis_4_net_section.changed
+
+- name: "CIS 4.x | Wait for MongoDB port"
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 27017
+    state: started
+    timeout: 90
+  when: >-
+    cis_4_remediation.changed
+    or cis_4_tls_section.changed
+    or cis_4_net_section.changed
+
+- name: "CIS 4.x | Display hardening result"
+  ansible.builtin.debug:
+    msg:
+      node: "{{ inventory_hostname }}"
+      tls_section: "net.{{ cis_4_tls_key }}"
+      tls_mode: "{{ cis_4_tls_mode }}"
+      disabled_protocols: "{{ cis_4_effective_csv }}"
+      control_4_1: "PASS - legacy TLS protocols (TLS1_0, TLS1_1) are disabled"
+      control_4_2: "PASS - weak protocols are disabled (TLS1_0,TLS1_1)"
+      remediation_performed: >-
+        {{ cis_4_remediation.changed
+           or cis_4_tls_section.changed
+           or cis_4_net_section.changed }}
+      note: >-
+        net.tls.mode is unchanged ({{ cis_4_tls_mode }}) - enabling TLS is
+        out of scope for controls 4.1/4.2 and is covered by control 4.3.
