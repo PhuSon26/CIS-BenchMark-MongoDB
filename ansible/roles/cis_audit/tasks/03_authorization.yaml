@@ -62,7 +62,7 @@
       - --port
       - "27017"
       - --username
-      - "MongoAdmin"
+      - MongoAdmin
       - --password
       - "{{ mongodb_admin_password }}"
       - --authenticationDatabase
@@ -70,45 +70,54 @@
       - --eval
       - |
         const config = db.adminCommand({ getCmdLineOpts: 1 });
+
         const result = db.getSiblingDB("admin").runCommand({
           usersInfo: { forAllDBs: true },
           showCredentials: false
         });
 
-        const users = result.users || [];
-        const usersWithoutRoles = users
-          .filter(user => !user.roles || user.roles.length === 0)
-          .map(user => ({
-            user: user.user,
-            database: user.db
+        if (config.ok !== 1 || result.ok !== 1) {
+          print(JSON.stringify({
+            querySucceeded: false
           }));
+        } else {
+          const users = result.users || [];
 
-        print(JSON.stringify({
-          authorization:
-            config.parsed?.security?.authorization || "unknown",
-          querySucceeded: result.ok === 1,
-          totalUsers: users.length,
-          usersWithoutRoles: usersWithoutRoles,
-          users: users.map(user => ({
-            user: user.user,
-            database: user.db,
-            roles: user.roles || []
-          }))
-        }));
+          print(JSON.stringify({
+            querySucceeded: true,
+            authorization:
+              config.parsed?.security?.authorization || "unknown",
+            totalUsers: users.length,
+            usersWithoutRoles: users
+              .filter(user => !user.roles || user.roles.length === 0)
+              .map(user => ({
+                user: user.user,
+                database: user.db
+              })),
+            users: users.map(user => ({
+              user: user.user,
+              database: user.db,
+              roles: user.roles || []
+            }))
+          }));
+        }
   register: cis_3_2_audit
   changed_when: false
   failed_when: false
+  no_log: true
 
 - name: "CIS 3.2 | Determine RBAC audit status"
   ansible.builtin.set_fact:
     cis_3_2_data: "{{ cis_3_2_audit.stdout | from_json }}"
     cis_3_2_status: >-
       {{ 'ERROR' if cis_3_2_audit.rc != 0 else
+         'ERROR' if cis_3_2_audit.stdout | length == 0 else
          'ERROR' if not (cis_3_2_audit.stdout | from_json).querySucceeded else
          'FAIL' if (cis_3_2_audit.stdout | from_json).authorization != 'enabled' else
-         'FAIL' if (cis_3_2_audit.stdout | from_json).usersWithoutRoles | length > 0 else
          'REVIEW_REQUIRED' }}
-  when: cis_3_2_audit.rc == 0
+  when:
+    - cis_3_2_audit.rc == 0
+    - cis_3_2_audit.stdout | length > 0
 
 - name: "CIS 3.2 | Display RBAC audit result"
   ansible.builtin.debug:
