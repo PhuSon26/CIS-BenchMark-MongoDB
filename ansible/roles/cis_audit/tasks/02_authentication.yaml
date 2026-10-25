@@ -1,4 +1,5 @@
----
+### CIS 2 Authentication ###
+### CIS 2.1 Ensure Authentication is configured (Automated) ###
 - name: "CIS 2.1 | Collect authentication configuration"
   ansible.builtin.shell: |
     grep -Eq '^[[:space:]]*authorization:[[:space:]]*["'\'']?enabled["'\'']?[[:space:]]*$' /etc/mongod.conf
@@ -14,6 +15,7 @@
       assessment: "{{ 'PASS' if cis_2_1_auth_check.rc == 0 else 'FAIL' }}"
       remediation_performed: false
 
+### CIS 2.2 Ensure that MongoDB does not bypass authentication via the localhost exception (Automated) ###
 - name: "CIS 2.2 | Collect localhost excepion configuration"
   ansible.builtin.shell:
     cat /etc/mongod.conf |grep "enableLocalhostAuthBypass"

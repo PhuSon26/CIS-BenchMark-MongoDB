@@ -1,3 +1,5 @@
+### CIS 3 Authorization ###
+### CIS 3.1 Ensure least privilege for database accounts (Manual) ###
 - name: "CIS 3.1 | Ensure least privilege for database accounts"
   ansible.builtin.command:
     argv:
@@ -49,3 +51,4 @@
       assessment: "{{ cis_3_1_status | default('ERROR') }}"
       matched_accounts: "{{ cis_3_1_accounts | default([]) | length }}"
       remediation_performed: false
+### CIS 3.2 Ensure that role-based access control is enabled and configured appropriately (Manual) ###

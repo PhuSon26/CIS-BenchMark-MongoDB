@@ -1,3 +1,5 @@
+### CIS 1 Installation and Patching ###
+### CIS 1.1 Ensure the appropriate MongoDB software version/patches are installed (Manual) ###
 - name: "CIS 1.1 | Collect MongoDB server version"
   ansible.builtin.command:
     argv:
