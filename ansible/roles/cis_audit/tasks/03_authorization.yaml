@@ -69,18 +69,14 @@
       - admin
       - --eval
       - |
-        const config = db.adminCommand({getCmdLineOpts: 1});
+        const config = db.adminCommand({ getCmdLineOpts: 1 });
         const result = db.getSiblingDB("admin").runCommand({
-          usersInfo: {forAllDBs: true},
+          usersInfo: { forAllDBs: true },
           showCredentials: false
         });
 
         const users = result.users || [];
-        const assessedUsers = users.filter(
-          user => !(user.user === "MongoAdmin" && user.db === "admin")
-        );
-
-        const usersWithoutRoles = assessedUsers
+        const usersWithoutRoles = users
           .filter(user => !user.roles || user.roles.length === 0)
           .map(user => ({
             user: user.user,
@@ -91,9 +87,9 @@
           authorization:
             config.parsed?.security?.authorization || "unknown",
           querySucceeded: result.ok === 1,
-          assessedUserCount: assessedUsers.length,
+          totalUsers: users.length,
           usersWithoutRoles: usersWithoutRoles,
-          users: assessedUsers.map(user => ({
+          users: users.map(user => ({
             user: user.user,
             database: user.db,
             roles: user.roles || []
@@ -119,9 +115,9 @@
     msg:
       control: "3.2"
       node: "{{ inventory_hostname }}"
-      authorization: "{{ cis_3_2_data.authorization | default('unknown') }}"
-      assessed_users: "{{ cis_3_2_data.assessedUserCount | default(0) }}"
-      users_without_roles: "{{ cis_3_2_data.usersWithoutRoles | default([]) | length }}"
       assessment: "{{ cis_3_2_status | default('ERROR') }}"
-      manual_review_required: true
+      authorization: "{{ cis_3_2_data.authorization | default('unknown') }}"
+      total_users: "{{ cis_3_2_data.totalUsers | default(0) }}"
+      users_without_roles: "{{ cis_3_2_data.usersWithoutRoles | default([]) }}"
+      all_users_and_roles: "{{ cis_3_2_data.users | default([]) }}"
       remediation_performed: false
