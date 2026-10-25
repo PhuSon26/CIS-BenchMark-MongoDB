@@ -107,13 +107,13 @@
   ansible.builtin.set_fact:
     cis_3_2_data: "{{ cis_3_2_audit.stdout | from_json }}"
     cis_3_2_status: >-
-      {{ 'ERROR' if cis_3_2_result.rc != 0 else
-         'ERROR' if not (cis_3_2_result.stdout | from_json).querySucceeded else
-         'FAIL' if (cis_3_2_result.stdout | from_json).authorization != 'enabled' else
-         'FAIL' if (cis_3_2_result.stdout | from_json).usersWithoutRoles | length > 0 else
+      {{ 'ERROR' if cis_3_2_audit.rc != 0 else
+         'ERROR' if not (cis_3_2_audit.stdout | from_json).querySucceeded else
+         'FAIL' if (cis_3_2_audit.stdout | from_json).authorization != 'enabled' else
+         'FAIL' if (cis_3_2_audit.stdout | from_json).usersWithoutRoles | length > 0 else
          'REVIEW_REQUIRED' }}
-  when: cis_3_2_result.rc == 0
-
+  when: cis_3_2_audit.rc == 0
+  
 - name: "CIS 3.2 | Display RBAC audit result"
   ansible.builtin.debug:
     msg:
