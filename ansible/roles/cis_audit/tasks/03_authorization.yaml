@@ -113,7 +113,7 @@
          'FAIL' if (cis_3_2_audit.stdout | from_json).usersWithoutRoles | length > 0 else
          'REVIEW_REQUIRED' }}
   when: cis_3_2_audit.rc == 0
-  
+
 - name: "CIS 3.2 | Display RBAC audit result"
   ansible.builtin.debug:
     msg:
@@ -122,4 +122,6 @@
       authorization: "{{ cis_3_2_data.authorization | default('unknown') }}"
       assessed_users: "{{ cis_3_2_data.assessedUserCount | default(0) }}"
       users_without_roles: "{{ cis_3_2_data.usersWithoutRoles | default([]) | length }}"
+      assessment: "{{ cis_3_2_status | default('ERROR') }}"
+      manual_review_required: true
       remediation_performed: false
