@@ -158,3 +158,39 @@
       assessment: "{{ cis_3_3_status }}"
       audit_details: "{{ cis_3_3_audit.stdout_lines }}"
       remediation_performed: false
+### CIS 3.4 Ensure that each role for each MongoDB database is needed and grants only the necessary privileges (Manual)  ###
+- name: "CIS 3.4 | Collect roles and privileges"
+  ansible.builtin.command:
+    argv:
+      - mongosh
+      - --quiet
+      - --host
+      - 127.0.0.1
+      - --port
+      - "27017"
+      - --username
+      - MongoAdmin
+      - --password
+      - "{{ mongodb_admin_password }}"
+      - --authenticationDatabase
+      - admin
+      - --eval
+      - 'db.runCommand({ rolesInfo: 1, showPrivileges: true, showBuiltinRoles: true })'
+  register: cis_3_4_audit
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: "CIS 3.4 | Determine audit status"
+  ansible.builtin.set_fact:
+    cis_3_4_status: >-
+      {{ 'ERROR' if cis_3_4_audit.rc != 0 else 
+         'REVIEW_REQUIRED' }}
+
+- name: "CIS 3.4 | Display audit result"
+  ansible.builtin.debug:
+    msg:
+      control: "3.4"
+      node: "{{ inventory_hostname }}"
+      assessment: "{{ cis_3_4_status }}"
+      remediation_performed: false
