@@ -130,3 +130,31 @@
       users_without_roles: "{{ cis_3_2_data.usersWithoutRoles | default([]) }}"
       all_users_and_roles: "{{ cis_3_2_data.users | default([]) }}"
       remediation_performed: false
+### CIS 3.3 Ensure that MongoDB is run using a non-privileged, dedicated service account (Manual) ###
+- name: "CIS 3.3 | Collect service account and permissions"
+  ansible.builtin.shell: |
+    ps -ef | grep -E "[m]ongos|[m]ongod"
+    stat -c '%U:%G %a %n' \
+      /var/lib/mongodb \
+      /etc/mongodb/keyfile \
+      /var/log/mongodb/mongod.log
+  register: cis_3_3_audit
+  changed_when: false
+  failed_when: false
+
+- name: "CIS 3.3 | Determine audit status"
+  ansible.builtin.set_fact:
+    cis_3_3_status: >-
+      {{ 'ERROR' if cis_3_3_audit.rc != 0 else
+         'ERROR' if cis_3_3_audit.stdout | length == 0 else
+         'FAIL' if cis_3_3_audit.stdout is search('(?m)^root\\s+\\d+\\s+\\d+') else
+         'REVIEW_REQUIRED' }}
+
+- name: "CIS 3.3 | Display audit result"
+  ansible.builtin.debug:
+    msg:
+      control: "3.3"
+      node: "{{ inventory_hostname }}"
+      assessment: "{{ cis_3_3_status }}"
+      audit_details: "{{ cis_3_3_audit.stdout_lines }}"
+      remediation_performed: false
