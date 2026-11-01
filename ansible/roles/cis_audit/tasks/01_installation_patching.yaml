@@ -20,16 +20,6 @@
   changed_when: false
   failed_when: false
 
-- name: "CIS 1.1 | Collect MongoDB package policy"
-  ansible.builtin.command:
-    argv:
-      - apt-cache
-      - policy
-      - mongodb-org-server
-  register: cis_1_1_package_policy
-  changed_when: false
-  failed_when: false
-
 - name: "CIS 1.1 | Check available package updates"
   ansible.builtin.command:
     argv:
@@ -75,8 +65,6 @@
         {{ cis_1_1_server_version.stdout | default('NOT_FOUND') }}
       installed_package_version: >-
         {{ cis_1_1_installed_package.stdout | default('NOT_FOUND') }}
-      package_policy: >-
-        {{ cis_1_1_package_policy.stdout | default('') }}
       mongodb_updates: "{{ cis_1_1_mongodb_updates }}"
       assessment: "{{ cis_1_1_collection_status }}"
       remediation_performed: false
