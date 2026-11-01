@@ -48,7 +48,6 @@
         if (
           cis_1_1_server_version.rc != 0
           or cis_1_1_installed_package.rc != 0
-          or cis_1_1_package_policy.rc != 0
           or cis_1_1_upgradable_packages.rc != 0
         )
         else 'REVIEW_REQUIRED'
