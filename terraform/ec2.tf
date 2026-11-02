@@ -35,7 +35,12 @@ resource "aws_instance" "controller" {
 
   key_name                    = var.key_pair_name
   associate_public_ip_address = true
-  user_data                   = file("${path.module}/userdata/controller.sh")
+  user_data = templatefile("${path.module}/userdata/controller.sh", {
+    mongodb_hosts = join("\\n", [
+      for index, instance in aws_instance.mongodb :
+      "mongodb${index + 1} ansible_host=${instance.private_ip}"
+    ])
+  })
 
   root_block_device {
     volume_size           = var.root_volume_size
@@ -49,7 +54,7 @@ resource "aws_instance" "controller" {
   }
 
   tags = {
-    Name    = "${var.project_name}-controller"
+    Name    = "Ansible Controller"
     Project = var.project_name
     Role    = "controller"
   }
@@ -88,4 +93,21 @@ resource "aws_instance" "mongodb" {
     Project = var.project_name
     Role    = "mongodb"
   }
+}
+
+# =========================================
+# 4. GENERATE LOCAL ANSIBLE INVENTORY
+# =========================================
+
+resource "local_file" "ansible_inventory" {
+  filename = "${path.module}/../ansible/inventory.ini"
+
+  content = templatefile("${path.module}/userdata/inventory.ini.tftpl", {
+    mongodb_hosts = join("\n", [
+      for index, instance in aws_instance.mongodb :
+      "mongodb${index + 1} ansible_host=${instance.private_ip}"
+    ])
+  })
+
+  depends_on = [aws_instance.mongodb]
 }
