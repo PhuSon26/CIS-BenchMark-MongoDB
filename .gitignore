@@ -1,17 +1,21 @@
-# Terraform working directory
-**/.terraform/*
+# ==============================
+# Terraform
+# ==============================
+
+# Terraform working directories
+**/.terraform/
 
 # Terraform state files
 *.tfstate
 *.tfstate.*
 terraform.tfstate
 terraform.tfstate.backup
-.terraform.lock.hcl
-# Terraform variable files (may contain secrets)
+
+# Terraform variable files
 *.tfvars
 *.tfvars.json
 
-# Override files
+# Terraform override files
 override.tf
 override.tf.json
 *_override.tf
@@ -21,7 +25,10 @@ override.tf.json
 *.tfplan
 tfplan
 
-# Local inventory containing IPs or credentials
+# ==============================
+# Ansible
+# ==============================
+
 ansible/inventory.ini
 
 # Ansible Vault password files
@@ -32,6 +39,7 @@ vault-password.txt
 # ==============================
 # Secrets / Environment
 # ==============================
+
 .env
 *.pem
 *.key
