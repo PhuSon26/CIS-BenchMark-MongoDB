@@ -1,0 +1,7 @@
+---
+- name: CIS Benchmark - Section 1 Installation and Patching
+  hosts: mongodb_nodes
+  become: true
+  gather_facts: false
+  roles:
+    - cis_audit

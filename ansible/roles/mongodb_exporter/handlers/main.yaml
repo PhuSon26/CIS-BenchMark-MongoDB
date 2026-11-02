@@ -1,3 +1,4 @@
+---
 - name: Restart MongoDB Exporter
   ansible.builtin.systemd:
     name: mongodb_exporter

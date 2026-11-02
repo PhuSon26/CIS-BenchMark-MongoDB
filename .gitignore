@@ -35,3 +35,6 @@ vault-password.txt
 .env
 *.pem
 *.key
+
+ansible/files/mongodb-keyfile
+ansible/vars/mongodb_exporter_secret.yml
