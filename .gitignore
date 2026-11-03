@@ -15,34 +15,10 @@ terraform.tfstate.backup
 *.tfvars
 *.tfvars.json
 
-# Terraform override files
-override.tf
-override.tf.json
-*_override.tf
-*_override.tf.json
-
 # Terraform plan files
 *.tfplan
 tfplan
 
 # ==============================
-# Ansible
-# ==============================
-
-ansible/inventory.ini
-
-# Ansible Vault password files
-.vault_pass
-.vault-password
-vault-password.txt
-
-# ==============================
 # Secrets / Environment
 # ==============================
-
-.env
-*.pem
-*.key
-
-ansible/files/mongodb-keyfile
-ansible/vars/mongodb_exporter_secret.yml

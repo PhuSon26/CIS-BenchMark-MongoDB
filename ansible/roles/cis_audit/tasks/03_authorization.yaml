@@ -1,0 +1,197 @@
+### CIS 3 Authorization ###
+### CIS 3.1 Ensure least privilege for database accounts (Manual) ###
+- name: "CIS 3.1 | Ensure least privilege for database accounts"
+  ansible.builtin.command:
+    argv:
+      - mongosh
+      - --quiet
+      - --host
+      - 127.0.0.1
+      - --port
+      - "27017"
+      - --username
+      - MongoAdmin
+      - --password
+      - "{{ mongodb_admin_password }}"
+      - --authenticationDatabase
+      - admin
+      - --eval
+      - |
+        print(JSON.stringify(
+          db.getSiblingDB("admin").system.users.find({
+            roles: {
+              $elemMatch: {
+                role: {
+                  $in: ["dbOwner", "userAdmin", "userAdminAnyDatabase"]
+                },
+                db: "admin"
+              }
+            }
+          }).toArray()
+        ))
+  register: cis_3_1_audit
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: "CIS 3.1 | Determine audit status"
+  ansible.builtin.set_fact:
+    cis_3_1_accounts: "{{ cis_3_1_audit.stdout | from_json }}"
+    cis_3_1_status: >-
+      {{ 'ERROR' if cis_3_1_audit.rc != 0 else
+         'PASS' if (cis_3_1_audit.stdout | from_json | length) == 0 else
+         'REVIEW_REQUIRED' }}
+  when: cis_3_1_audit.rc == 0
+
+- name: "CIS 3.1 | Display audit result"
+  ansible.builtin.debug:
+    msg:
+      control: "3.1"
+      node: "{{ inventory_hostname }}"
+      assessment: "{{ cis_3_1_status | default('ERROR') }}"
+      matched_accounts: "{{ cis_3_1_accounts | default([]) | length }}"
+      remediation_performed: false
+### CIS 3.2 Ensure that role-based access control is enabled and configured appropriately (Manual) ###
+- name: "CIS 3.2 | Collect RBAC configuration and user role assignments"
+  ansible.builtin.command:
+    argv:
+      - mongosh
+      - --quiet
+      - --host
+      - 127.0.0.1
+      - --port
+      - "27017"
+      - --username
+      - MongoAdmin
+      - --password
+      - "{{ mongodb_admin_password }}"
+      - --authenticationDatabase
+      - admin
+      - --eval
+      - |
+        const config = db.adminCommand({ getCmdLineOpts: 1 });
+
+        const result = db.getSiblingDB("admin").runCommand({
+          usersInfo: { forAllDBs: true },
+          showCredentials: false
+        });
+
+        if (config.ok !== 1 || result.ok !== 1) {
+          print(JSON.stringify({
+            querySucceeded: false
+          }));
+        } else {
+          const users = result.users || [];
+
+          print(JSON.stringify({
+            querySucceeded: true,
+            authorization:
+              config.parsed?.security?.authorization || "unknown",
+            totalUsers: users.length,
+            usersWithoutRoles: users
+              .filter(user => !user.roles || user.roles.length === 0)
+              .map(user => ({
+                user: user.user,
+                database: user.db
+              })),
+            users: users.map(user => ({
+              user: user.user,
+              database: user.db,
+              roles: user.roles || []
+            }))
+          }));
+        }
+  register: cis_3_2_audit
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: "CIS 3.2 | Determine RBAC audit status"
+  ansible.builtin.set_fact:
+    cis_3_2_data: "{{ cis_3_2_audit.stdout | from_json }}"
+    cis_3_2_status: >-
+      {{ 'ERROR' if cis_3_2_audit.rc != 0 else
+         'ERROR' if cis_3_2_audit.stdout | length == 0 else
+         'ERROR' if not (cis_3_2_audit.stdout | from_json).querySucceeded else
+         'FAIL' if (cis_3_2_audit.stdout | from_json).authorization != 'enabled' else
+         'REVIEW_REQUIRED' }}
+  when:
+    - cis_3_2_audit.rc == 0
+    - cis_3_2_audit.stdout | length > 0
+
+- name: "CIS 3.2 | Display RBAC audit result"
+  ansible.builtin.debug:
+    msg:
+      control: "3.2"
+      node: "{{ inventory_hostname }}"
+      assessment: "{{ cis_3_2_status | default('ERROR') }}"
+      authorization: "{{ cis_3_2_data.authorization | default('unknown') }}"
+      total_users: "{{ cis_3_2_data.totalUsers | default(0) }}"
+      users_without_roles: "{{ cis_3_2_data.usersWithoutRoles | default([]) }}"
+      all_users_and_roles: "{{ cis_3_2_data.users | default([]) }}"
+      remediation_performed: false
+### CIS 3.3 Ensure that MongoDB is run using a non-privileged, dedicated service account (Manual) ###
+- name: "CIS 3.3 | Collect service account and permissions"
+  ansible.builtin.shell: |
+    ps -ef | grep -E "[m]ongos|[m]ongod"
+    stat -c '%U:%G %a %n' \
+      /var/lib/mongodb \
+      /etc/mongodb/keyfile \
+      /var/log/mongodb/mongod.log
+  register: cis_3_3_audit
+  changed_when: false
+  failed_when: false
+
+- name: "CIS 3.3 | Determine audit status"
+  ansible.builtin.set_fact:
+    cis_3_3_status: >-
+      {{ 'ERROR' if cis_3_3_audit.rc != 0 else
+         'ERROR' if cis_3_3_audit.stdout | length == 0 else
+         'FAIL' if cis_3_3_audit.stdout is search('(?m)^root\\s+\\d+\\s+\\d+') else
+         'REVIEW_REQUIRED' }}
+
+- name: "CIS 3.3 | Display audit result"
+  ansible.builtin.debug:
+    msg:
+      control: "3.3"
+      node: "{{ inventory_hostname }}"
+      assessment: "{{ cis_3_3_status }}"
+      audit_details: "{{ cis_3_3_audit.stdout_lines }}"
+      remediation_performed: false
+### CIS 3.4 Ensure that each role for each MongoDB database is needed and grants only the necessary privileges (Manual)  ###
+- name: "CIS 3.4 | Collect roles and privileges"
+  ansible.builtin.command:
+    argv:
+      - mongosh
+      - --quiet
+      - --host
+      - 127.0.0.1
+      - --port
+      - "27017"
+      - --username
+      - MongoAdmin
+      - --password
+      - "{{ mongodb_admin_password }}"
+      - --authenticationDatabase
+      - admin
+      - --eval
+      - 'db.runCommand({ rolesInfo: 1, showPrivileges: true, showBuiltinRoles: true })'
+  register: cis_3_4_audit
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: "CIS 3.4 | Determine audit status"
+  ansible.builtin.set_fact:
+    cis_3_4_status: >-
+      {{ 'ERROR' if cis_3_4_audit.rc != 0 else
+         'REVIEW_REQUIRED' }}
+
+- name: "CIS 3.4 | Display audit result"
+  ansible.builtin.debug:
+    msg:
+      control: "3.4"
+      node: "{{ inventory_hostname }}"
+      assessment: "{{ cis_3_4_status }}"
+      remediation_performed: false
+### CIS 3.5 Review Superuser/Admin Roles (Manual)   ###
