@@ -1,10 +1,11 @@
-[controllers]
+[controller_node]
 controller ansible_connection=local
 
-[mongodb]
+[mongodb_nodes]
 ${mongodb_hosts}
 
-[mongodb:vars]
+[all:vars]
 ansible_user=ubuntu
 ansible_become=true
+ansible_python_interpreter=/usr/bin/python3
 ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new'
