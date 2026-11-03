@@ -24,8 +24,8 @@
       {{
         'enterprise'
         if (
-          ('enterprise' in (cis_5_3_version.stdout | default('') | lower))
-          or ('enterprise' in (cis_5_3_packages.stdout | default('') | lower))
+          ('-ent' in (cis_5_3_version.stdout | default('') | lower))
+          or ('mongodb-enterprise' in (cis_5_3_packages.stdout | default('') | lower))
         )
         else 'community'
       }}
@@ -53,7 +53,7 @@
 
 - name: "CIS 5.3 | Normalize quiet value"
   ansible.builtin.set_fact:
-    cis_5_3_quiet_norm: "{{ cis_5_3_quiet_raw | string | lower }}"
+    cis_5_3_quiet_norm: "{{ cis_5_3_quiet_raw | string | trim | lower }}"
 
 - name: "CIS 5.3 | Determine assessment"
   ansible.builtin.set_fact:
@@ -63,7 +63,8 @@
         if cis_5_3_edition != 'enterprise'
         else (
           'PASS'
-          if (cis_5_3_quiet_norm in ['false', 'not_found'])
+          if (cis_5_3_quiet_raw is false)
+             or (cis_5_3_quiet_norm in ['false', 'not_found', '0', 'no', ''])
           else 'FAIL'
         )
       }}
@@ -127,12 +128,17 @@
 
 - name: "CIS 5.4 | Normalize logAppend value"
   ansible.builtin.set_fact:
-    cis_5_4_log_append_norm: "{{ cis_5_4_log_append_raw | string | lower }}"
+    cis_5_4_log_append_norm: "{{ cis_5_4_log_append_raw | string | trim | lower }}"
 
 - name: "CIS 5.4 | Determine assessment"
   ansible.builtin.set_fact:
     cis_5_4_assessment: >-
-      {{ 'PASS' if cis_5_4_log_append_norm == 'true' else 'FAIL' }}
+      {{
+        'PASS'
+        if (cis_5_4_log_append_raw is true)
+           or (cis_5_4_log_append_norm in ['true', '1', 'yes'])
+        else 'FAIL'
+      }}
 
 - name: "CIS 5.4 | Build audit note"
   ansible.builtin.set_fact:
