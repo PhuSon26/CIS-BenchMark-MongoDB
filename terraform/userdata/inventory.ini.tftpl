@@ -1,4 +1,4 @@
-[controller]
+[controllers]
 controller ansible_connection=local
 
 [mongodb]
@@ -7,4 +7,4 @@ ${mongodb_hosts}
 [mongodb:vars]
 ansible_user=ubuntu
 ansible_become=true
-ansible_ssh_common_args=-o StrictHostKeyChecking=accept-new
+ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new'

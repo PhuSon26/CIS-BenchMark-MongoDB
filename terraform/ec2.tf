@@ -2,6 +2,7 @@
 # 1. CREATE ANSIBLE CONTROLLER
 # =========================================
 
+
 resource "aws_instance" "controller" {
   ami                    = var.ubuntu_ami_id
   instance_type          = var.controller_instance_type
