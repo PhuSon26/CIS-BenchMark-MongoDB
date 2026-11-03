@@ -5,6 +5,11 @@ variable "project_name" {
   default     = "CIS-BenchMark-MongoDB"
 }
 
+variable "ubuntu_ami_id" {
+  description = "Ubuntu 24.04 AMI ID"
+  type        = string
+}
+
 # VPC network
 variable "vpc_cidr" {
   description = "CIDR block for VPC"

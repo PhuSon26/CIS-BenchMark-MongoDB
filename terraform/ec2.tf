@@ -1,42 +1,18 @@
 # =========================================
-# 1. FIND UBUNTU 24.04 AMI
-# =========================================
-
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"]
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  filter {
-    name   = "architecture"
-    values = ["x86_64"]
-  }
-}
-
-
-# =========================================
-# 2. CREATE ANSIBLE CONTROLLER
+# 1. CREATE ANSIBLE CONTROLLER
 # =========================================
 
 resource "aws_instance" "controller" {
-  ami                    = data.aws_ami.ubuntu.id
+  ami                    = var.ubuntu_ami_id
   instance_type          = var.controller_instance_type
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.controller.id]
 
   key_name                    = var.key_pair_name
   associate_public_ip_address = true
+
   user_data = templatefile("${path.module}/userdata/controller.sh", {
-    mongodb_hosts = join("\\n", [
+    mongodb_hosts = join("\n", [
       for index, instance in aws_instance.mongodb :
       "mongodb${index + 1} ansible_host=${instance.private_ip}"
     ])
@@ -60,22 +36,20 @@ resource "aws_instance" "controller" {
   }
 }
 
-
 # =========================================
-# 3. CREATE 3 MONGODB SERVERS
+# 2. CREATE 3 MONGODB SERVERS
 # =========================================
 
 resource "aws_instance" "mongodb" {
   count = var.mongodb_count
 
-  ami                    = data.aws_ami.ubuntu.id
+  ami                    = var.ubuntu_ami_id
   instance_type          = var.mongodb_instance_type
   subnet_id              = aws_subnet.private.id
   vpc_security_group_ids = [aws_security_group.mongodb.id]
 
   key_name                    = var.key_pair_name
   associate_public_ip_address = false
-
 
   root_block_device {
     volume_size           = var.root_volume_size
@@ -89,14 +63,14 @@ resource "aws_instance" "mongodb" {
   }
 
   tags = {
-    Name    = "mongodb-${format("%02d", count.index + 1)}"
+    Name    = "MongoDB-${format("%02d", count.index + 1)}"
     Project = var.project_name
     Role    = "mongodb"
   }
 }
 
 # =========================================
-# 4. GENERATE LOCAL ANSIBLE INVENTORY
+# 3. GENERATE LOCAL ANSIBLE INVENTORY
 # =========================================
 
 resource "local_file" "ansible_inventory" {
