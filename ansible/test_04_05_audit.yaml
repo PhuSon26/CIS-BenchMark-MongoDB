@@ -3,7 +3,7 @@
 # Dung cho Ubuntu 24.04 single-node.
 # Chay: ansible-playbook -i inventory_test.ini test_04_05_audit.yaml
 - name: Test CIS 04 + 05 audit only (read-only)
-  hosts: mongodb_nodes
+  hosts: mongo_test
   become: true
   gather_facts: false
   tasks:

@@ -3,7 +3,7 @@
 # Dung cho Ubuntu 24.04 single-node.
 # Chay: ansible-playbook -i inventory_test.ini test_04_05_hardening.yaml
 - name: Test CIS 04 + 05 hardening (changes /etc/mongod.conf, restarts mongod)
-  hosts: mongodb_nodes
+  hosts: mongo_test
   become: true
   gather_facts: false
   tasks:
