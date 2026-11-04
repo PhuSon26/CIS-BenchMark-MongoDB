@@ -1,4 +1,115 @@
 ---
+# 5.1 Ensure that system activity is audited
+
+- name: "CIS 5.1 | Collect MongoDB version and edition"
+  ansible.builtin.command:
+    argv:
+      - mongod
+      - --version
+  register: cis_5_1_version
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: "CIS 5.1 | Collect installed MongoDB package names"
+  ansible.builtin.shell: |
+    dpkg-query -W -f='${Package} ${Status}\n' 'mongodb*' 2>/dev/null | grep 'install ok installed' || true
+  register: cis_5_1_packages
+  changed_when: false
+  failed_when: false
+
+- name: "CIS 5.1 | Determine edition"
+  ansible.builtin.set_fact:
+    cis_5_1_edition: >-
+      {{
+        'enterprise'
+        if ('enterprise' in (cis_5_1_version.stdout | default('') | lower))
+           or ('mongodb-enterprise' in (cis_5_1_packages.stdout | default('') | lower))
+        else 'community'
+      }}
+
+- name: "CIS 5.1 | Ensure auditLog section exists (Enterprise only)"
+  ansible.builtin.lineinfile:
+    path: /etc/mongod.conf
+    regexp: '^[ \t]*auditLog:[ \t]*$'
+    line: 'auditLog:'
+    state: present
+    insertbefore: BOTTOM
+  register: cis_5_1_auditlog_section
+  when: cis_5_1_edition == 'enterprise'
+
+- name: "CIS 5.1 | Ensure auditLog.destination is set to syslog (Enterprise only)"
+  ansible.builtin.lineinfile:
+    path: /etc/mongod.conf
+    regexp: '^[ \t]*destination:[ \t]*(syslog|console|file)[ \t]*$'
+    line: '  destination: syslog'
+    state: present
+    insertafter: '^[ \t]*auditLog:[ \t]*$'
+  register: cis_5_1_remediation
+  when: cis_5_1_edition == 'enterprise'
+
+- name: "CIS 5.1 | Validate MongoDB configuration (Enterprise only)"
+  ansible.builtin.command:
+    argv:
+      - mongod
+      - --config
+      - /etc/mongod.conf
+      - --outputConfig
+  register: cis_5_1_validation
+  changed_when: false
+  failed_when: false
+  no_log: true
+  when: cis_5_1_edition == 'enterprise'
+
+- name: "CIS 5.1 | Abort if configuration is invalid"
+  ansible.builtin.fail:
+    msg: "Invalid MongoDB configuration after applying CIS 5.1 - check /etc/mongod.conf"
+  when: cis_5_1_edition == 'enterprise' and cis_5_1_validation.rc != 0
+
+- name: "CIS 5.1 | Verify auditLog.destination in effective config (Enterprise only)"
+  ansible.builtin.assert:
+    that:
+      - "(cis_5_1_effective_dest | string | trim | lower) in ['syslog', 'console', 'file']"
+    fail_msg: "auditLog.destination is not set to syslog, console or file after remediation"
+  when: cis_5_1_edition == 'enterprise' and cis_5_1_validation.rc == 0
+  vars:
+    cis_5_1_effective_dest: >-
+      {%- set cfg = (cis_5_1_validation.stdout | from_yaml)
+            if (cis_5_1_validation.rc == 0 and (cis_5_1_validation.stdout | default('') | length) > 0)
+            else {} -%}
+      {%- set alog = (cfg | default({}, true)).get('auditLog') or {} -%}
+      {{- alog.get('destination', 'NOT_FOUND') -}}
+
+- name: "CIS 5.1 | Restart MongoDB when configuration changes (Enterprise only)"
+  ansible.builtin.systemd:
+    name: mongod
+    state: restarted
+  when: cis_5_1_edition == 'enterprise' and (cis_5_1_remediation.changed or cis_5_1_auditlog_section.changed)
+
+- name: "CIS 5.1 | Wait for MongoDB port (Enterprise only)"
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 27017
+    state: started
+    timeout: 90
+  when: cis_5_1_edition == 'enterprise' and (cis_5_1_remediation.changed or cis_5_1_auditlog_section.changed)
+
+- name: "CIS 5.1 | Display hardening result"
+  ansible.builtin.debug:
+    msg:
+      node: "{{ inventory_hostname }}"
+      control: "5.1"
+      edition: "{{ cis_5_1_edition }}"
+      destination_value: "{{ 'syslog' if cis_5_1_edition == 'enterprise' else 'NOT_APPLICABLE (Community edition)' }}"
+      remediation_performed: "{{ (cis_5_1_remediation.changed or cis_5_1_auditlog_section.changed) if cis_5_1_edition == 'enterprise' else false }}"
+      note: >-
+        {{
+          'auditLog.destination is set to syslog - system activity is audited.'
+          if cis_5_1_edition == 'enterprise'
+          else 'Skipped - auditLog is Enterprise-only and Community mongod would fail to start with it configured.'
+        }}
+
+
 # 5.3 Ensure that logging captures as much information as possible
 
 - name: "CIS 5.3 | Collect MongoDB version and edition"
@@ -13,7 +124,7 @@
 
 - name: "CIS 5.3 | Collect installed MongoDB package names"
   ansible.builtin.shell: |
-    dpkg-query -W -f='${Package}\n' 'mongodb*' 2>/dev/null || true
+    dpkg-query -W -f='${Package} ${Status}\n' 'mongodb*' 2>/dev/null | grep 'install ok installed' || true
   register: cis_5_3_packages
   changed_when: false
   failed_when: false
@@ -23,10 +134,8 @@
     cis_5_3_edition: >-
       {{
         'enterprise'
-        if (
-          ('enterprise' in (cis_5_3_version.stdout | default('') | lower))
-          or ('enterprise' in (cis_5_3_packages.stdout | default('') | lower))
-        )
+        if ('enterprise' in (cis_5_3_version.stdout | default('') | lower))
+           or ('mongodb-enterprise' in (cis_5_3_packages.stdout | default('') | lower))
         else 'community'
       }}
 

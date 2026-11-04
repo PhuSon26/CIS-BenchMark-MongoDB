@@ -8,5 +8,5 @@
 - name: "CIS 4.1 | Transport Encryption"
   ansible.builtin.import_tasks: 04_transport_encryption.yaml
 
-- name: CIS 5.4 | Logging
+- name: CIS 5.x | Logging (5.1/5.3/5.4)
   ansible.builtin.import_tasks: 05_logging.yaml
