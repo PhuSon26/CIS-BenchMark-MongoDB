@@ -1,0 +1,137 @@
+use ecommerce_db
+
+db.users.insertMany([
+  {username:"son01",name:"Le Phu Son",email:"son01@gmail.com",age:21,role:"admin"},
+  {username:"user02",name:"Nguyen Van An",email:"an02@gmail.com",age:22,role:"customer"},
+  {username:"user03",name:"Tran Minh Tuan",email:"tuan03@gmail.com",age:25,role:"customer"},
+  {username:"user04",name:"Pham Hoang Nam",email:"nam04@gmail.com",age:23,role:"customer"},
+  {username:"user05",name:"Vo Thanh Long",email:"long05@gmail.com",age:28,role:"customer"},
+  {username:"user06",name:"Huynh Minh Khang",email:"khang06@gmail.com",age:24,role:"customer"},
+  {username:"user07",name:"Dang Quoc Huy",email:"huy07@gmail.com",age:30,role:"customer"},
+  {username:"user08",name:"Bui Ngoc Linh",email:"linh08@gmail.com",age:22,role:"customer"},
+  {username:"user09",name:"Do Thanh Dat",email:"dat09@gmail.com",age:26,role:"customer"},
+  {username:"user10",name:"Ngo Minh Duc",email:"duc10@gmail.com",age:27,role:"customer"},
+  {username:"user11",name:"Le Hoang Anh",email:"anh11@gmail.com",age:23,role:"customer"},
+  {username:"user12",name:"Nguyen Thi Mai",email:"mai12@gmail.com",age:29,role:"customer"},
+  {username:"user13",name:"Tran Ngoc Han",email:"han13@gmail.com",age:21,role:"customer"},
+  {username:"user14",name:"Pham Duc Thang",email:"thang14@gmail.com",age:32,role:"customer"},
+  {username:"user15",name:"Vo Minh Quan",email:"quan15@gmail.com",age:24,role:"customer"}
+])
+
+db.products.insertMany([
+  {name:"Dell XPS 15",category:"Laptop",price:1500,stock:20,brand:"Dell"},
+  {name:"MacBook Pro M4",category:"Laptop",price:2200,stock:15,brand:"Apple"},
+  {name:"ASUS ROG Strix",category:"Laptop",price:1800,stock:12,brand:"ASUS"},
+  {name:"HP Pavilion",category:"Laptop",price:900,stock:30,brand:"HP"},
+  {name:"iPhone 17",category:"Smartphone",price:999,stock:50,brand:"Apple"},
+  {name:"Samsung S26",category:"Smartphone",price:1100,stock:40,brand:"Samsung"},
+  {name:"Google Pixel 10",category:"Smartphone",price:850,stock:25,brand:"Google"},
+  {name:"Xiaomi 15",category:"Smartphone",price:650,stock:60,brand:"Xiaomi"},
+  {name:"Logitech MX Master 3S",category:"Mouse",price:100,stock:100,brand:"Logitech"},
+  {name:"Razer DeathAdder",category:"Mouse",price:70,stock:80,brand:"Razer"},
+  {name:"Keychron K8",category:"Keyboard",price:110,stock:60,brand:"Keychron"},
+  {name:"Samsung Odyssey",category:"Monitor",price:600,stock:20,brand:"Samsung"},
+  {name:"Sony WH-1000XM6",category:"Headphones",price:400,stock:40,brand:"Sony"},
+  {name:"AirPods Pro 3",category:"Headphones",price:250,stock:55,brand:"Apple"},
+  {name:"TP-Link Router AX3000",category:"Networking",price:120,stock:50,brand:"TP-Link"}
+])
+
+db.orders.insertMany([
+  {order_id:"ORD001",username:"son01",total:1500,status:"delivered"},
+  {order_id:"ORD002",username:"user02",total:999,status:"processing"},
+  {order_id:"ORD003",username:"user03",total:2200,status:"shipped"},
+  {order_id:"ORD004",username:"user04",total:900,status:"cancelled"},
+  {order_id:"ORD005",username:"user05",total:600,status:"delivered"},
+  {order_id:"ORD006",username:"user06",total:850,status:"processing"},
+  {order_id:"ORD007",username:"user07",total:250,status:"delivered"},
+  {order_id:"ORD008",username:"user08",total:1100,status:"shipped"},
+  {order_id:"ORD009",username:"user09",total:400,status:"delivered"},
+  {order_id:"ORD010",username:"user10",total:1800,status:"processing"},
+  {order_id:"ORD011",username:"user11",total:120,status:"delivered"},
+  {order_id:"ORD012",username:"user12",total:700,status:"shipped"},
+  {order_id:"ORD013",username:"user13",total:350,status:"cancelled"},
+  {order_id:"ORD014",username:"user14",total:2800,status:"delivered"},
+  {order_id:"ORD015",username:"user15",total:180,status:"processing"}
+])
+
+db.payments.insertMany([
+  {transaction_id:"TXN001",order_id:"ORD001",amount:1500,method:"credit_card",status:"success"},
+  {transaction_id:"TXN002",order_id:"ORD002",amount:999,method:"bank_transfer",status:"pending"},
+  {transaction_id:"TXN003",order_id:"ORD003",amount:2200,method:"e_wallet",status:"success"},
+  {transaction_id:"TXN004",order_id:"ORD004",amount:900,method:"credit_card",status:"failed"},
+  {transaction_id:"TXN005",order_id:"ORD005",amount:600,method:"cash",status:"success"},
+  {transaction_id:"TXN006",order_id:"ORD006",amount:850,method:"e_wallet",status:"pending"},
+  {transaction_id:"TXN007",order_id:"ORD007",amount:250,method:"credit_card",status:"success"},
+  {transaction_id:"TXN008",order_id:"ORD008",amount:1100,method:"bank_transfer",status:"success"},
+  {transaction_id:"TXN009",order_id:"ORD009",amount:400,method:"credit_card",status:"success"},
+  {transaction_id:"TXN010",order_id:"ORD010",amount:1800,method:"e_wallet",status:"pending"},
+  {transaction_id:"TXN011",order_id:"ORD011",amount:120,method:"cash",status:"success"},
+  {transaction_id:"TXN012",order_id:"ORD012",amount:700,method:"credit_card",status:"success"},
+  {transaction_id:"TXN013",order_id:"ORD013",amount:350,method:"bank_transfer",status:"failed"},
+  {transaction_id:"TXN014",order_id:"ORD014",amount:2800,method:"credit_card",status:"success"},
+  {transaction_id:"TXN015",order_id:"ORD015",amount:180,method:"e_wallet",status:"pending"}
+])
+
+db.reviews.insertMany([
+  {username:"user01",product:"Dell XPS 15",rating:5,comment:"Excellent performance"},
+  {username:"user02",product:"iPhone 17",rating:4,comment:"Very good product"},
+  {username:"user03",product:"MacBook Pro M4",rating:5,comment:"Amazing laptop"},
+  {username:"user04",product:"Razer DeathAdder",rating:3,comment:"Average quality"},
+  {username:"user05",product:"Samsung Odyssey",rating:5,comment:"Beautiful display"},
+  {username:"user06",product:"Google Pixel 10",rating:4,comment:"Great camera"},
+  {username:"user07",product:"AirPods Pro 3",rating:5,comment:"Excellent sound"},
+  {username:"user08",product:"Logitech MX Master 3S",rating:4,comment:"Very comfortable"},
+  {username:"user09",product:"Sony WH-1000XM6",rating:5,comment:"Best headphones"},
+  {username:"user10",product:"TP-Link Router AX3000",rating:3,comment:"Works fine"},
+  {username:"user11",product:"Keychron K8",rating:5,comment:"Great keyboard"},
+  {username:"user12",product:"HP Pavilion",rating:4,comment:"Good laptop"},
+  {username:"user13",product:"Xiaomi 15",rating:2,comment:"Battery could be better"},
+  {username:"user14",product:"ASUS ROG Strix",rating:5,comment:"Amazing gaming laptop"},
+  {username:"user15",product:"Samsung S26",rating:4,comment:"Good smartphone"}
+])
+
+db.getSiblingDB("ecommerce_db").createUser({
+    user: "ecommerceAdmin",
+    pwd: passwordPrompt(), // password: ecommerce
+    roles: [
+        {
+            role: "dbOwner",
+            db: "ecommerce_db"
+        }
+    ]
+})
+
+use admin
+
+db.createUser({
+    user: "PhuSon",
+    pwd: passwordPrompt(), // password: nt542_nhom5
+    roles: [
+        {
+            role: "dbOwner",
+            db: "admin"
+        }
+    ]
+})
+
+db.createUser({
+    user: "BaNam",
+    pwd: passwordPrompt(), // password: nt542_nhom5
+    roles: [
+        {
+            role: "userAdmin",
+            db: "admin"
+        }
+    ]
+})
+
+db.createUser({
+    user: "DucThien",
+    pwd: passwordPrompt(), // password: nt542_nhom5
+    roles: [
+        {
+            role: "userAdminAnyDatabase",
+            db: "admin"
+        }
+    ]
+})
