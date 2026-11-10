@@ -193,9 +193,5 @@
       control: "3.4"
       node: "{{ inventory_hostname }}"
       assessment: "{{ cis_3_4_status }}"
-<<<<<<< HEAD
       remediation_performed: false
 ### CIS 3.5 Review Superuser/Admin Roles (Manual)   ###
-=======
-      remediation_performed: false
->>>>>>> 0b9e70c (.)
