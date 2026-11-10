@@ -1,4 +1,3 @@
----
 - name: CIS 1 | Installation and Patching
   ansible.builtin.import_tasks: 01_installation_patching.yaml
 
@@ -7,3 +6,9 @@
 
 - name: CIS 3 | Authorization
   ansible.builtin.import_tasks: 03_authorization.yaml
+
+- name: "CIS 4.1 | Transport Encryption"
+  ansible.builtin.import_tasks: 04_transport_encryption.yaml
+
+- name: CIS 5.x | Logging (5.1/5.3/5.4)
+  ansible.builtin.import_tasks: 05_logging.yaml

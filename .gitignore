@@ -22,3 +22,6 @@ tfplan
 # ==============================
 # Secrets / Environment
 # ==============================
+ansible/files/mongodb-keyfile
+ansible/vars/mongodb_exporter_secret.yml
+reports/private/

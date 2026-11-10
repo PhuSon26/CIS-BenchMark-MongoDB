@@ -1,0 +1,18 @@
+---
+# Test playbook: chi chay audit CIS 04 (4.1/4.2) + 05 (5.1/5.3/5.4), khong dong den 01/02.
+# Dung cho Ubuntu 24.04 single-node.
+# Chay: ansible-playbook -i inventory_single.ini test_04_05_audit.yaml
+- name: Test CIS 04 + 05 audit only (read-only)
+  hosts: mongo_test
+  become: true
+  gather_facts: false
+  tasks:
+    - name: "CIS 4.1/4.2 | Transport Encryption audit"
+      ansible.builtin.include_role:
+        name: cis_audit
+        tasks_from: 04_transport_encryption.yaml
+
+    - name: "CIS 5.1/5.3/5.4 | Logging audit"
+      ansible.builtin.include_role:
+        name: cis_audit
+        tasks_from: 05_logging.yaml

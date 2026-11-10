@@ -1,0 +1,133 @@
+---
+- name: "CIS 4.x | Collect effective MongoDB configuration"
+  ansible.builtin.command:
+    argv:
+      - mongod
+      - --config
+      - /etc/mongod.conf
+      - --outputConfig
+  register: cis_4_config
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: "CIS 4.x | Extract raw disabledProtocols"
+  ansible.builtin.set_fact:
+    cis_4_disabled_raw: >-
+      {%- set cfg = (cis_4_config.stdout | from_yaml)
+            if (cis_4_config.rc == 0 and (cis_4_config.stdout | default('') | length) > 0)
+            else {} -%}
+      {%- set net = (cfg | default({}, true)).get('net') or {} -%}
+      {%- set tls = net.get('tls') or net.get('ssl') or {} -%}
+      {{- tls.get('disabledProtocols', []) | default([], true) -}}
+
+- name: "CIS 4.x | Normalize disabledProtocols to CSV string"
+  ansible.builtin.set_fact:
+    cis_4_disabled_csv: >-
+      {%- set raw = cis_4_disabled_raw -%}
+      {%- set csv = (raw | join(',')) if (raw is not string) else raw -%}
+      {{- csv | replace(' ', '') | upper -}}
+
+- name: "CIS 4.x | Build disabled protocol list"
+  ansible.builtin.set_fact:
+    cis_4_disabled_list: >-
+      {{ cis_4_disabled_csv.split(',') | select('!=', '') | list }}
+
+- name: "CIS 4.x | Extract TLS mode"
+  ansible.builtin.set_fact:
+    cis_4_tls_mode: >-
+      {%- set cfg = (cis_4_config.stdout | from_yaml)
+            if (cis_4_config.rc == 0 and (cis_4_config.stdout | default('') | length) > 0)
+            else {} -%}
+      {%- set net = (cfg | default({}, true)).get('net') or {} -%}
+      {%- set tls = net.get('tls') or net.get('ssl') or {} -%}
+      {{- tls.get('mode', 'disable') | default('disable', true) -}}
+
+# 4.1 Ensure legacy TLS protocols are disabled (Automated)
+
+- name: "CIS 4.1 | Determine assessment"
+  ansible.builtin.set_fact:
+    cis_4_1_assessment: >-
+      {{
+        'PASS'
+        if (
+          ('TLS1_0' in cis_4_disabled_list)
+          and ('TLS1_1' in cis_4_disabled_list)
+          and ('TLS1_2' not in cis_4_disabled_list)
+          and ('TLS1_3' not in cis_4_disabled_list)
+        )
+        else 'FAIL'
+      }}
+
+- name: "CIS 4.1 | Build audit note"
+  ansible.builtin.set_fact:
+    cis_4_1_note: >-
+      {{
+        'TLS1_0 and TLS1_1 are disabled; TLS1_2 and TLS1_3 remain enabled'
+        if (
+          ('TLS1_0' in cis_4_disabled_list)
+          and ('TLS1_1' in cis_4_disabled_list)
+          and ('TLS1_2' not in cis_4_disabled_list)
+          and ('TLS1_3' not in cis_4_disabled_list)
+        )
+        else (
+          'net.tls.disabledProtocols is not declared - mongod only disables TLS1_0 by default, TLS1_1 is still allowed'
+          if (cis_4_disabled_csv | length) == 0
+          else (
+            'TLS1_0 and/or TLS1_1 are not disabled'
+            if (
+              ('TLS1_0' not in cis_4_disabled_list)
+              or ('TLS1_1' not in cis_4_disabled_list)
+            )
+            else 'TLS1_2 and/or TLS1_3 are disabled - modern protocols must remain enabled'
+          )
+        )
+      }}
+
+- name: "CIS 4.1 | Display audit result"
+  ansible.builtin.debug:
+    msg:
+      control: "4.1"
+      node: "{{ inventory_hostname }}"
+      tls_mode: "{{ cis_4_tls_mode }}"
+      disabled_protocols: "{{ cis_4_disabled_csv if (cis_4_disabled_csv | length) > 0 else 'NOT_DECLARED' }}"
+      assessment: "{{ cis_4_1_assessment }}"
+      note: "{{ cis_4_1_note }}"
+      recomendation: >-
+        Set net.tls.disabledProtocols to TLS1_0,TLS1_1 in /etc/mongod.conf
+        and restart mongod.
+      remediation_performed: false
+
+# 4.2 Ensure Weak Protocols are Disabled (Automated)
+
+- name: "CIS 4.2 | Determine assessment"
+  ansible.builtin.set_fact:
+    cis_4_2_assessment: >-
+      {{ 'PASS' if 'TLS1_0,TLS1_1' in cis_4_disabled_csv else 'FAIL' }}
+
+- name: "CIS 4.2 | Build audit note"
+  ansible.builtin.set_fact:
+    cis_4_2_note: >-
+      {{
+        'net.tls.disabledProtocols contains TLS1_0,TLS1_1 - weak protocols TLS1_0 and TLS1_1 are disabled'
+        if 'TLS1_0,TLS1_1' in cis_4_disabled_csv
+        else (
+          'net.tls.disabledProtocols is not declared - TLS1_1 is still allowed by the mongod default'
+          if (cis_4_disabled_csv | length) == 0
+          else 'net.tls.disabledProtocols does not contain the required string TLS1_0,TLS1_1'
+        )
+      }}
+
+- name: "CIS 4.2 | Display audit result"
+  ansible.builtin.debug:
+    msg:
+      control: "4.2"
+      node: "{{ inventory_hostname }}"
+      tls_mode: "{{ cis_4_tls_mode }}"
+      disabled_protocols: "{{ cis_4_disabled_csv if (cis_4_disabled_csv | length) > 0 else 'NOT_DECLARED' }}"
+      assessment: "{{ cis_4_2_assessment }}"
+      note: "{{ cis_4_2_note }}"
+      recomendation: >-
+        Set net.tls.disabledProtocols to TLS1_0,TLS1_1 in /etc/mongod.conf
+        and restart mongod.
+      remediation_performed: false
