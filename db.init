@@ -101,11 +101,74 @@ db.getSiblingDB("ecommerce_db").createUser({
     ]
 })
 
+// User 1: Application - đọc và ghi dữ liệu
+db.createUser({
+  user: "ecommerceApp",
+  pwd: "ecommerce",
+  roles: [
+    { role: "readWrite", db: "ecommerce_db" }
+  ]
+})
+
+// User 2: Analyst - chỉ đọc dữ liệu
+db.createUser({
+  user: "ecommerceAnalyst",
+  pwd: "ecommerce",
+  roles: [
+    { role: "read", db: "ecommerce_db" }
+  ]
+})
+
+// User 3: Database Operator - quản trị database
+db.createUser({
+  user: "ecommerceOperator",
+  pwd: "ecommerce",
+  roles: [
+    { role: "dbAdmin", db: "ecommerce_db" }
+  ]
+})
+
+// User 4: Có quyền sở hữu toàn bộ database
+db.createUser({
+  user: "ecommerceOwner",
+  pwd: "ecommerce",
+  roles: [
+    { role: "dbOwner", db: "ecommerce_db" }
+  ]
+})
+
+// User 5: Có quyền quản lý và phân quyền user
+db.createUser({
+  user: "ecommerceUserAdmin",
+  pwd: "ecommerce",
+  roles: [
+    { role: "userAdmin", db: "ecommerce_db" }
+  ]
+})
+
+// User 6: Có quyền quản trị database
+db.createUser({
+  user: "ecommerceDBAdmin",
+  pwd: "ecommerce",
+  roles: [
+    { role: "dbAdmin", db: "ecommerce_db" }
+  ]
+})
+
+// CIS 3.2. Quyen khong phu hop
+db.grantRolesToUser("ecommerceAnalyst", [
+  { role: "readWrite", db: "ecommerce_db" }
+])
+
+db.grantRolesToUser("ecommerceApp", [
+  { role: "dbOwner", db: "ecommerce_db" }
+])
+
 use admin
 
 db.createUser({
     user: "PhuSon",
-    pwd: passwordPrompt(), // password: nt542_nhom5
+    pwd: "nt542_nhom5"
     roles: [
         {
             role: "dbOwner",
@@ -116,7 +179,7 @@ db.createUser({
 
 db.createUser({
     user: "BaNam",
-    pwd: passwordPrompt(), // password: nt542_nhom5
+    pwd: "nt542_nhom5"
     roles: [
         {
             role: "userAdmin",
@@ -127,7 +190,7 @@ db.createUser({
 
 db.createUser({
     user: "DucThien",
-    pwd: passwordPrompt(), // password: nt542_nhom5
+    pwd: "nt542_nhom5"
     roles: [
         {
             role: "userAdminAnyDatabase",
