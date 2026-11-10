@@ -17,40 +17,34 @@
       - admin
       - --eval
       - |
-        print(JSON.stringify(
-          db.getSiblingDB("admin").system.users.find({
-            roles: {
-              $elemMatch: {
-                role: {
-                  $in: ["dbOwner", "userAdmin", "userAdminAnyDatabase"]
+        db.getSiblingDB("admin").system.users.find(
+            {
+                "roles.role": {
+                    $in: [
+                        "dbOwner",
+                        "userAdmin",
+                        "userAdminAnyDatabase"
+                    ]
                 },
-                db: "admin"
-              }
+                "roles.db": "admin"
             }
-          }).toArray()
-        ))
+        )
   register: cis_3_1_audit
   changed_when: false
   failed_when: false
   no_log: true
+  tags: cis_3_1
 
-- name: "CIS 3.1 | Determine audit status"
-  ansible.builtin.set_fact:
-    cis_3_1_accounts: "{{ cis_3_1_audit.stdout | from_json }}"
-    cis_3_1_status: >-
-      {{ 'ERROR' if cis_3_1_audit.rc != 0 else
-         'PASS' if (cis_3_1_audit.stdout | from_json | length) == 0 else
-         'REVIEW_REQUIRED' }}
-  when: cis_3_1_audit.rc == 0
-
-- name: "CIS 3.1 | Display audit result"
+- name: "CIS 3.1 | Display audit evidence"
   ansible.builtin.debug:
     msg:
       control: "3.1"
+      description: "Ensure least privilege for database accounts"
+      status: "REVIEW_REQUIRED"
       node: "{{ inventory_hostname }}"
-      assessment: "{{ cis_3_1_status | default('ERROR') }}"
-      matched_accounts: "{{ cis_3_1_accounts | default([]) | length }}"
-      remediation_performed: false
+      audit_result: "{{ cis_3_1_audit.stdout | default('Audit execution failed') }}"
+  tags: cis_3_1
+      
 ### CIS 3.2 Ensure that role-based access control is enabled and configured appropriately (Manual) ###
 - name: "CIS 3.2 | Collect RBAC configuration and user role assignments"
   ansible.builtin.command:

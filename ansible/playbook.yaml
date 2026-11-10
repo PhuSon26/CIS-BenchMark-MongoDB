@@ -15,15 +15,3 @@
   become: true
   roles:
     - mongodb_replica_set
-
-- name: Install Prometheus and Grafana on Controller Node
-  hosts: controller_node
-  become: true
-  roles:
-    - monitoring_install
-
-- name: Install MongoDB Exporter
-  hosts: mongodb_nodes
-  become: true
-  roles:
-    - mongodb_exporter
