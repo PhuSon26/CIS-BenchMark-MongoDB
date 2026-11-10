@@ -61,7 +61,12 @@
         Ensure the appropriate MongoDB software version/patches are installed
       node: "{{ inventory_hostname }}"
       server_version: >-
-        {{ cis_1_1_server_version.stdout | default('NOT_FOUND') }}
+        {{
+          cis_1_1_server_version.stdout
+          | regex_search('(?m)^db version (.+)$', '\1')
+          | first
+          | default('NOT_FOUND')
+        }}
       installed_package_version: >-
         {{ cis_1_1_installed_package.stdout | default('NOT_FOUND') }}
       mongodb_updates: "{{ cis_1_1_mongodb_updates }}"

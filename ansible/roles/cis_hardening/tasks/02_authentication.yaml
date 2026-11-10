@@ -3,6 +3,8 @@
   ansible.builtin.stat:
     path: /etc/mongodb/keyfile
   register: mongodb_keyfile
+  tags:
+    - cis_2_1
 
 - name: "CIS 2.1 | Validate keyfile permissions"
   ansible.builtin.assert:
@@ -12,6 +14,8 @@
       - mongodb_keyfile.stat.gr_name == "mongodb"
       - mongodb_keyfile.stat.mode == "0400"
     fail_msg: "MongoDB keyfile is missing or has incorrect ownership/permissions."
+  tags:
+    - cis_2_1
 
 - name: "CIS 2.1 | Configure authentication and keyfile"
   ansible.builtin.blockinfile:
@@ -24,6 +28,8 @@
         keyFile: /etc/mongodb/keyfile
         authorization: enabled
   register: security_config_result
+  tags:
+    - cis_2_1
 
 - name: "CIS 2.1 | Validate MongoDB configuration"
   ansible.builtin.command:
@@ -34,12 +40,16 @@
       - --outputConfig
   changed_when: false
   no_log: true
+  tags:
+    - cis_2_1
 
 - name: "CIS 2.1 | Restart MongoDB when configuration changes"
   ansible.builtin.systemd:
     name: mongod
     state: restarted
   when: security_config_result.changed
+  tags:
+    - cis_2_1
 
 - name: "CIS 2.1 | Wait for MongoDB port"
   ansible.builtin.wait_for:
@@ -48,11 +58,15 @@
     state: started
     timeout: 90
   when: security_config_result.changed
+  tags:
+    - cis_2_1
 
 - name: "CIS 2.1 | Check MongoDB service status"
   ansible.builtin.command: systemctl is-active mongod
   register: mongod_service
   changed_when: false
+  tags:
+    - cis_2_1
 
 - name: "CIS 2.1 | Display hardening result"
   ansible.builtin.debug:
@@ -61,6 +75,9 @@
       authentication_configured: true
       remediation_performed: "{{ security_config_result.changed }}"
       mongodb_service: "{{ mongod_service.stdout }}"
+  tags:
+    - cis_2_1
+
 ### CIS 2.2 ###
 - name: "CIS 2.2 | Disable localhost authentication bypass"
   ansible.builtin.blockinfile:
@@ -73,6 +90,8 @@
         enableLocalhostAuthBypass: false
   register: localhost_bypass_config_result
   notify: Restart MongoDB
+  tags:
+    - cis_2_2
 
 - name: "CIS 2.2 | Validate MongoDB configuration"
   ansible.builtin.command:
@@ -82,3 +101,5 @@
       - /etc/mongod.conf
       - --outputConfig
   changed_when: false
+  tags:
+    - cis_2_2
