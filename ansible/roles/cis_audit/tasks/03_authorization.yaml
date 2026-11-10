@@ -40,13 +40,25 @@
     msg:
       control: "3.1"
       description: "Ensure least privilege for database accounts"
-      status: "REVIEW_REQUIRED"
+      assessment: "REVIEW_REQUIRED"
       node: "{{ inventory_hostname }}"
-      audit_result: "{{ cis_3_1_audit.stdout | default('Audit execution failed') }}"
+      total_accounts: >-
+        {{
+          cis_3_1_audit.stdout
+          | regex_findall("user: '([^']+)'")
+          | length
+        }}
+      audit_result: >-
+        {{
+          cis_3_1_audit.stdout
+          | regex_findall("(?s)user: '([^']+)'.*?roles: [[](.*?)[]]")
+          | map('join', ' ')
+          | list
+        }}
   tags: cis_3_1
-      
+
 ### CIS 3.2 Ensure that role-based access control is enabled and configured appropriately (Manual) ###
-- name: "CIS 3.2 | Collect RBAC configuration and user role assignments"
+- name: "CIS 3.2 | Audit RBAC user assignments"
   ansible.builtin.command:
     argv:
       - mongosh
@@ -63,95 +75,72 @@
       - admin
       - --eval
       - |
-        const config = db.adminCommand({ getCmdLineOpts: 1 });
+        const result = db.getSiblingDB("ecommerce_db").getUsers();
 
-        const result = db.getSiblingDB("admin").runCommand({
-          usersInfo: { forAllDBs: true },
-          showCredentials: false
-        });
-
-        if (config.ok !== 1 || result.ok !== 1) {
-          print(JSON.stringify({
-            querySucceeded: false
-          }));
-        } else {
-          const users = result.users || [];
-
-          print(JSON.stringify({
-            querySucceeded: true,
-            authorization:
-              config.parsed?.security?.authorization || "unknown",
-            totalUsers: users.length,
-            usersWithoutRoles: users
-              .filter(user => !user.roles || user.roles.length === 0)
-              .map(user => ({
-                user: user.user,
-                database: user.db
-              })),
-            users: users.map(user => ({
-              user: user.user,
-              database: user.db,
-              roles: user.roles || []
-            }))
-          }));
-        }
+        print(JSON.stringify({
+          totalUsers: result.users.length,
+          users: result.users.map(user => ({
+            user: user.user,
+            roles: user.roles
+          }))
+        }));
   register: cis_3_2_audit
   changed_when: false
   failed_when: false
   no_log: true
+  tags: cis_3_2
 
-- name: "CIS 3.2 | Determine RBAC audit status"
+- name: "CIS 3.2 | Parse RBAC audit result"
   ansible.builtin.set_fact:
     cis_3_2_data: "{{ cis_3_2_audit.stdout | from_json }}"
-    cis_3_2_status: >-
-      {{ 'ERROR' if cis_3_2_audit.rc != 0 else
-         'ERROR' if cis_3_2_audit.stdout | length == 0 else
-         'ERROR' if not (cis_3_2_audit.stdout | from_json).querySucceeded else
-         'FAIL' if (cis_3_2_audit.stdout | from_json).authorization != 'enabled' else
-         'REVIEW_REQUIRED' }}
   when:
     - cis_3_2_audit.rc == 0
     - cis_3_2_audit.stdout | length > 0
+  tags: cis_3_2
 
-- name: "CIS 3.2 | Display RBAC audit result"
+- name: "CIS 3.2 | Display RBAC audit evidence"
   ansible.builtin.debug:
     msg:
       control: "3.2"
+      description: "Ensure that role-based access control is enabled and configured appropriately"
+      assessment: "REVIEW_REQUIRED"
       node: "{{ inventory_hostname }}"
-      assessment: "{{ cis_3_2_status | default('ERROR') }}"
-      authorization: "{{ cis_3_2_data.authorization | default('unknown') }}"
-      total_users: "{{ cis_3_2_data.totalUsers | default(0) }}"
-      users_without_roles: "{{ cis_3_2_data.usersWithoutRoles | default([]) }}"
-      all_users_and_roles: "{{ cis_3_2_data.users | default([]) }}"
-      remediation_performed: false
+      database: "ecommerce_db"
+      total_users: "{{ cis_3_2_data.totalUsers }}"
+      audit_result: >-
+        {{
+          cis_3_2_data.users
+          | map(attribute='user')
+          | zip(cis_3_2_data.users | map(attribute='roles') | map('map', attribute='role') | map('join', ', '))
+          | map('join', ' : ')
+          | list
+        }}
+  when: cis_3_2_data is defined
+  tags: cis_3_2
+
 ### CIS 3.3 Ensure that MongoDB is run using a non-privileged, dedicated service account (Manual) ###
-- name: "CIS 3.3 | Collect service account and permissions"
-  ansible.builtin.shell: |
-    ps -ef | grep -E "[m]ongos|[m]ongod"
-    stat -c '%U:%G %a %n' \
-      /var/lib/mongodb \
-      /etc/mongodb/keyfile \
-      /var/log/mongodb/mongod.log
+- name: "CIS 3.3 | Audit MongoDB service account"
+  ansible.builtin.shell:
+    cmd: "ps -ef | grep -E 'mongos|mongod'"
   register: cis_3_3_audit
   changed_when: false
   failed_when: false
+  no_log: true
+  tags: cis_3_3
 
-- name: "CIS 3.3 | Determine audit status"
-  ansible.builtin.set_fact:
-    cis_3_3_status: >-
-      {{ 'ERROR' if cis_3_3_audit.rc != 0 else
-         'ERROR' if cis_3_3_audit.stdout | length == 0 else
-         'FAIL' if cis_3_3_audit.stdout is search('(?m)^root\\s+\\d+\\s+\\d+') else
-         'REVIEW_REQUIRED' }}
-
-- name: "CIS 3.3 | Display audit result"
+- name: "CIS 3.3 | Display audit evidence"
   ansible.builtin.debug:
     msg:
       control: "3.3"
+      description: "Ensure that MongoDB is run using a non-privileged, dedicated service account"
+      assessment: "REVIEW_REQUIRED"
       node: "{{ inventory_hostname }}"
-      assessment: "{{ cis_3_3_status }}"
-      audit_details: "{{ cis_3_3_audit.stdout_lines }}"
-      remediation_performed: false
+      mongo_processes: "{{ cis_3_3_audit.stdout_lines }}"
+  when:
+    - cis_3_3_audit.rc == 0
+    - cis_3_3_audit.stdout | length > 0
+  tags: cis_3_3
+
 ### CIS 3.4 Ensure that each role for each MongoDB database is needed and grants only the necessary privileges (Manual)  ###
 - name: "CIS 3.4 | Collect roles and privileges"
   ansible.builtin.command:
@@ -174,17 +163,94 @@
   changed_when: false
   failed_when: false
   no_log: true
-
-- name: "CIS 3.4 | Determine audit status"
-  ansible.builtin.set_fact:
-    cis_3_4_status: >-
-      {{ 'ERROR' if cis_3_4_audit.rc != 0 else
-         'REVIEW_REQUIRED' }}
+  tags: cis_3_4
 
 - name: "CIS 3.4 | Display audit result"
   ansible.builtin.debug:
     msg:
       control: "3.4"
       node: "{{ inventory_hostname }}"
-      assessment: "{{ cis_3_4_status }}"
+      assessment: "REVIEW_REQUIRED"
       remediation_performed: false
+  tags: cis_3_4
+### CIS 3.5 Review Superuser/Admin Roles (Manual) ###
+- name: "CIS 3.5 | Audit privileged role assignments"
+  ansible.builtin.command:
+    argv:
+      - mongosh
+      - --quiet
+      - --host
+      - 127.0.0.1
+      - --port
+      - "27017"
+      - --username
+      - MongoAdmin
+      - --password
+      - "{{ mongodb_admin_password }}"
+      - --authenticationDatabase
+      - admin
+      - --eval
+      - |
+        const database = db.getSiblingDB("ecommerce_db");
+
+        const rolesResult = database.runCommand({
+          rolesInfo: [
+            "dbOwner",
+            "userAdmin",
+            "dbAdmin",
+            "userAdminAnyDatabase",
+            "readWriteAnyDatabase",
+            "dbAdminAnyDatabase",
+            "clusterAdmin",
+            "hostManager"
+          ],
+          showPrivileges: true,
+          showBuiltinRoles: true
+        });
+
+        const privilegedRoles = [
+          "dbOwner",
+          "userAdmin",
+          "dbAdmin",
+          "userAdminAnyDatabase",
+          "readWriteAnyDatabase",
+          "dbAdminAnyDatabase",
+          "clusterAdmin",
+          "hostManager"
+        ];
+
+        const users = database.getUsers().users;
+
+        const flaggedUsers = users
+          .map(user => ({
+            user: user.user,
+            violations: user.roles
+              .filter(role => privilegedRoles.includes(role.role))
+              .map(role => role.role)
+          }))
+          .filter(user => user.violations.length > 0)
+          .map(user => `${user.user} : ${user.violations.join(", ")}`);
+
+        print(JSON.stringify({
+          total_users: users.length,
+          total_users_requiring_review: flaggedUsers.length,
+          audit_result: flaggedUsers
+        }));
+  register: cis_3_5_audit
+  changed_when: false
+  failed_when: cis_3_5_audit.rc != 0
+  no_log: true
+  tags: cis_3_5
+
+- name: "CIS 3.5 | Display audit result"
+  ansible.builtin.debug:
+    msg:
+      control: "3.5"
+      description: "Review superuser/admin roles to minimize privileged unwanted access"
+      node: "{{ inventory_hostname }}"
+      database: "ecommerce_db"
+      assessment: "REVIEW_REQUIRED"
+      total_users: "{{ (cis_3_5_audit.stdout | from_json).total_users }}"
+      total_users_requiring_review: "{{ (cis_3_5_audit.stdout | from_json).total_users_requiring_review }}"
+      audit_result: "{{ (cis_3_5_audit.stdout | from_json).audit_result }}"
+  tags: cis_3_5

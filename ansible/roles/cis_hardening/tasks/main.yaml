@@ -1,12 +1,4 @@
-<<<<<<< HEAD
-- name: "CIS 1 | Authorization"
-  ansible.builtin.import_tasks: 02_authentication.yaml
-
 - name: "CIS 2 | Authentication"
-  ansible.builtin.import_tasks: 02_authentication.yaml
-=======
----
-- name: "CIS 2.1 | Authentication"
   ansible.builtin.import_tasks: 02_authentication.yaml
 
 - name: "CIS 4.1 | Transport Encryption"
@@ -14,4 +6,3 @@
 
 - name: "CIS 5.x | Logging (5.1/5.3/5.4)"
   ansible.builtin.import_tasks: 05_logging.yaml
->>>>>>> 4_5
